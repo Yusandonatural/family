@@ -43,7 +43,7 @@
     return {
       id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       name, grade, avatar,
-      studyMin: 30, gameMin: 30, enRatio: 0.7, maxLessons: 0,
+      studyMin: 10, gameMin: 10, enRatio: 0.7, maxLessons: 0,
       lvEn: 1, lvMath: 1, recentEn: [], recentMath: [],
       stars: 0, days: {}, kinds: {},
     };
@@ -1196,7 +1196,7 @@
             <li>毎日「べんきょう スタート」。英語（約7割）と算数（約3割）の問題が学年に合わせて出ます。</li>
             <li><b>🎯 目標：</b>英語は「英語で会話ができる」をゴールにした15ステップの「えいかいわロード」で進みます（あいさつ → 気持ち → 名前 → 好きなもの … → 自己紹介スピーチ）。聞き取り・受け答え・穴うめ・並べかえに加え、マイクで<b>声に出して言う練習</b>もあります。目標のステップと期限、算数で重点的にやる単元は、お子さまの「せってい」で決められます。</li>
             <li>タイマーは <b>問題に取り組んでいる間だけ</b> 進みます（${IDLE_LIMIT}秒操作がないと自動で止まります）。途中でやめても続きから再開できます。</li>
-            <li><b>レッスン1回（標準30分）をクリアするごとに、ゲームタイム30分</b>がもらえます。2回やれば60分、3回で90分と貯まります（1日の上限回数はお子さまごとの設定で変更できます）。</li>
+            <li><b>レッスン1回（標準10分）をクリアするごとに、ゲームタイム10分</b>がもらえます。2回やれば20分、3回で30分と貯まります。時間はお子さまごとに変えられます（1日の上限回数はお子さまごとの設定で変更できます）。</li>
             <li>ゲームタイムは「スタート／ストップ」で使った分だけ減ります。残り5分・1分でお知らせ、0分でアラームが鳴ります。その日のうちに使い切りです。</li>
             <li>正解率に合わせて「かんたん」「ふつう」の難しさが自動で切り替わります。<b>同じ問題は10分間は出ません</b>（まちがえた問題は10分後にもう一度出ます）。</li>
             <li>ホーム画面に追加すると、アプリのように全画面で使えます（iPhone/iPad：共有ボタン →「ホーム画面に追加」）。</li>
@@ -1284,14 +1284,14 @@
 
   function showProfileForm(id, first) {
     const p = id ? S.profiles.find((x) => x.id === id) : null;
-    const v = p || { name: '', grade: 3, avatar: AVATARS[S.profiles.length % AVATARS.length], studyMin: 30, gameMin: 30, enRatio: 0.7, maxLessons: 0 };
+    const v = p || { name: '', grade: 3, avatar: AVATARS[S.profiles.length % AVATARS.length], studyMin: 10, gameMin: 10, enRatio: 0.7, maxLessons: 0 };
     const opts = (arr, sel) => arr.map(([val, label]) => `<option value="${val}" ${String(val) === String(sel) ? 'selected' : ''}>${label}</option>`).join('');
     const mins = [10, 15, 20, 25, 30, 35, 40, 45, 50, 60].map((m) => [m, m + '分']);
     const d = p ? p.days[dkey()] : null;
     render(`
       <section class="screen pform">
         ${first ? `<h1 class="logo">まいにち<b>30</b>ぷん</h1>
-          <p class="lead">英語を中心に算数もまぜて、毎日30分がんばったら<br>30分のゲームタイムがもらえるアプリです。</p>
+          <p class="lead">英語を中心に算数もまぜて、10分のレッスンをがんばるたびに<br>10分のゲームタイムがもらえるアプリです。</p>
           <p class="hint">はじめに、おうちの人がお子さまを登録してください。</p>` :
           `<header class="topbar"><button class="icon-btn back" aria-label="もどる">←</button><h2>${p ? 'お子さまの設定' : 'お子さまを追加'}</h2><span></span></header>`}
         <form class="card form">
@@ -1319,7 +1319,7 @@
         ${p ? `<div class="card">
           <h3>きょうの調整</h3>
           <p class="hint">きょう：${Math.floor((d ? d.sec : 0) / 60)}分・レッスン${lessonsOf(d)}回${d && d.cleared ? `・ゲーム残り ${fmt(gameRemaining(d))}` : ''}</p>
-          <button class="btn sm grant">レッスン1回分をクリア扱い（+ゲーム${p ? p.gameMin : 30}分）</button>
+          <button class="btn sm grant">レッスン1回分をクリア扱い（+ゲーム${p ? p.gameMin : 10}分）</button>
           <button class="btn sm add10">ゲーム時間 +10分</button>
           <button class="btn sm ghost reset-today">きょうの記録をリセット</button>
           <hr>
