@@ -14,6 +14,7 @@
     [600, '🦅', 'わし'], [1000, '🐉', 'ドラゴン'], [2000, '👑', 'キング'], [4000, '🌌', 'レジェンド'],
   ];
   const STREAK_BADGES = [3, 7, 14, 30, 50, 100, 200, 365];
+  const NO_REPEAT_MS = 10 * 60 * 1000; // おなじ問題を 出さない 時間（10ぷん）
   const IDLE_LIMIT = 90;       // 秒。この間 なにもしないと タイマーを とめる
   const ENRATIOS = [0.5, 0.6, 0.7, 0.8, 0.9];
 
@@ -385,8 +386,12 @@
     let lastAct = Date.now();
     let paused = false;
     let q = null, answered = false, input = '';
-    let combo = 0, sessionStars = 0, sinceIdx = 0, sessionSec = 0;
-    const retry = []; // { q, at }
+    let combo = 0, sessionStars = 0, sessionSec = 0;
+    const retry = []; // まちがえた問題 { q, at: もういちど出す時刻 }
+    // 最近 出した問題（10ぷん いないは おなじ問題を 出さない）
+    const seen = (p.seenQ = p.seenQ || {});
+    for (const k in seen) if (Date.now() - seen[k] >= NO_REPEAT_MS) delete seen[k];
+    const seenAt = (k) => (seen[k] && Date.now() - seen[k] < NO_REPEAT_MS ? seen[k] : 0);
     let timeUp = rewardable && d.lessonSec >= target;
 
     keepAwake(true);
@@ -454,10 +459,10 @@
     on('.resume', 'click', () => { SFX.tap(); resume(); });
 
     function nextQ() {
-      sinceIdx++;
-      const due = retry.findIndex((r) => r.at <= sinceIdx);
+      const due = retry.findIndex((r) => r.at <= Date.now() && !seenAt(r.q.key));
       if (due >= 0) { q = retry.splice(due, 1)[0].q; q.retry = true; }
-      else q = Questions.next({ g: p.grade, lvEn: p.lvEn, lvMath: p.lvMath, enRatio: p.enRatio });
+      else q = Questions.next({ g: p.grade, lvEn: p.lvEn, lvMath: p.lvMath, enRatio: p.enRatio, seenAt });
+      seen[q.key] = Date.now();
       answered = false; input = '';
       drawQ();
     }
@@ -530,7 +535,7 @@
       } else {
         combo = 0;
         SFX.ng();
-        if (!q.retry) retry.push({ q: reshuffle(q), at: sinceIdx + 3 });
+        if (!q.retry) retry.push({ q: reshuffle(q), at: Date.now() + NO_REPEAT_MS });
         fb.className = 'feedback bad';
         fb.innerHTML = `<div class="fb-head"><span class="mark">❌</span>おしい！</div>
           <div class="explain">${q.type === 'input' ? `こたえ：<b>${q.answer}</b><br>` : ''}${q.explain || ''}</div>
@@ -941,7 +946,7 @@
             <li>タイマーは <b>問題に取り組んでいる間だけ</b> 進みます（${IDLE_LIMIT}秒操作がないと自動で止まります）。途中でやめても続きから再開できます。</li>
             <li><b>レッスン1回（標準30分）をクリアするごとに、ゲームタイム30分</b>がもらえます。2回やれば60分、3回で90分と貯まります（1日の上限回数はお子さまごとの設定で変更できます）。</li>
             <li>ゲームタイムは「スタート／ストップ」で使った分だけ減ります。残り5分・1分でお知らせ、0分でアラームが鳴ります。その日のうちに使い切りです。</li>
-            <li>正解率に合わせて「かんたん」「ふつう」の難しさが自動で切り替わります。まちがえた問題は少しあとにもう一度出ます。</li>
+            <li>正解率に合わせて「かんたん」「ふつう」の難しさが自動で切り替わります。<b>同じ問題は10分間は出ません</b>（まちがえた問題は10分後にもう一度出ます）。</li>
             <li>ホーム画面に追加すると、アプリのように全画面で使えます（iPhone/iPad：共有ボタン →「ホーム画面に追加」）。</li>
           </ol>
         </div>

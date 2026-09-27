@@ -85,6 +85,30 @@ window.Questions = (function () {
     };
   };
 
+  // 「three dogs」を きいて 絵を えらぶ（かず × もの）
+  E.listenPhrase = ({ g }) => {
+    const pool = wordsFor(Math.min(g, 3), (w) => D.plurals[w.en]);
+    const t = pick(pool);
+    const max = g <= 0 ? 4 : 5;
+    const n = ri(1, max);
+    const phrase = `${D.numberWord(n)} ${n === 1 ? t.en : D.plurals[t.en]}`;
+    // まちがい：おなじ もので かずちがい ＋ おなじ かずで ものちがい
+    const cands = [];
+    for (let k = 1; k <= max; k++) if (k !== n) cands.push({ w: t, n: k });
+    for (const w of shuffle(pool).slice(0, 4)) if (w.en !== t.en) cands.push({ w, n });
+    const correct = { w: t, n };
+    const choices = withDistractors(correct, cands, nChoices(g), (c) => c.w.en + c.n);
+    return {
+      subj: 'en', kind: 'かず と もの',
+      prompt: 'えいごを きいて、えを えらぼう',
+      listen: true, say: [en(phrase)],
+      cols: 1,
+      choices: choices.map((c) => ({ html: emojiRow(c.w.emoji, c.n), value: c.w.en + c.n })),
+      answer: t.en + n, reveal: [en(phrase)],
+      explain: `${t.emoji.repeat(n)} <b>${esc(phrase)}</b>`,
+    };
+  };
+
   // きいて いろを えらぶ
   E.listenColor = ({ g }) => {
     const pool = D.colors.filter((c) => c.g <= g);
@@ -530,7 +554,7 @@ window.Questions = (function () {
     const opts = shuffle([{ e: e1, n: a }, { e: e2, n: b }]);
     const win = a > b ? e1 : e2;
     return {
-      subj: 'math', kind: 'おおい・すくない',
+      subj: 'math', kind: 'おおい・すくない', sig: `${e1}${a}-${e2}${b}`,
       prompt: 'おおい のは どっち？', say: [ja('おおい のは どっち？')],
       cols: 1,
       choices: opts.map((o) => ({ html: emojiRow(o.e, o.n, 'sm'), value: o.e })),
@@ -813,9 +837,9 @@ window.Questions = (function () {
   // ---------- がくねん ごとの しゅつだい ----------
   // [ジェネレーター, おもみ]
   const PLAN = {
-    0: { en: [[E.listenPic, 5], [E.listenColor, 3], [E.listenShape, 2], [E.listenNumber, 2]], math: [[M.count, 3], [M.more, 2]] },
-    1: { en: [[E.listenPic, 5], [E.listenColor, 3], [E.listenShape, 2], [E.listenNumber, 3]], math: [[M.count, 3], [M.more, 2], [M.next, 2]] },
-    2: { en: [[E.listenPic, 5], [E.listenColor, 2], [E.listenNumber, 3], [E.listenAlpha, 3], [E.listenShape, 1]], math: [[M.addPic, 3], [M.subPic, 2], [M.next, 2], [M.count, 1], [M.bigger, 1]] },
+    0: { en: [[E.listenPic, 5], [E.listenPhrase, 4], [E.listenColor, 2], [E.listenShape, 1], [E.listenNumber, 2]], math: [[M.count, 3], [M.more, 2]] },
+    1: { en: [[E.listenPic, 5], [E.listenPhrase, 4], [E.listenColor, 3], [E.listenShape, 2], [E.listenNumber, 3]], math: [[M.count, 3], [M.more, 2], [M.next, 2]] },
+    2: { en: [[E.listenPic, 5], [E.listenPhrase, 3], [E.listenColor, 2], [E.listenNumber, 3], [E.listenAlpha, 3], [E.listenShape, 1]], math: [[M.addPic, 3], [M.subPic, 2], [M.next, 2], [M.count, 1], [M.bigger, 1]] },
     3: { en: [[E.listenPic, 4], [E.listenNumber, 3], [E.listenAlpha, 3], [E.alphaMatch, 2], [E.listenColor, 1], [E.greeting, 2]], math: [[M.add20, 3], [M.sub20, 3], [M.clockJa, 1], [M.bigger, 1]] },
     4: { en: [[E.listenPic, 3], [E.picToWord, 3], [E.alphaMatch, 2], [E.alphaOrder, 2], [E.numberWord, 2], [E.greeting, 2], [E.colorWord, 2], [E.listenAlpha, 1]], math: [[M.add2d, 3], [M.sub2d, 3], [M.kuku, 4], [M.length, 1], [M.placeValue, 1], [M.clockJa, 1]] },
     5: { en: [[E.picToWord, 4], [E.wordToJa, 3], [E.howMany, 2], [E.alphaOrder, 1], [E.numberWord, 2], [E.greeting, 2], [E.days, 2], [E.colorWord, 1], [E.qa, 1]], math: [[M.div, 4], [M.mul2x1, 3], [M.add3d, 2], [M.time, 1], [M.kuku, 1]] },
@@ -833,24 +857,34 @@ window.Questions = (function () {
     return src[src.length - 1][0];
   }
 
+  // 「同じ問題」の見分け：種類・答え・問題文・絵が同じなら同じ問題
+  const plain = (h) => String(h || '').replace(/<[^>]+>/g, '').replace(/\s+/g, '');
+  const keyOf = (q) => [q.kind, q.answer, plain(q.prompt), plain(q.visual), q.sig || ''].join('|');
+
   let lastGen = null;
   // enRatio: えいごの わりあい（0〜1）
-  function next({ g, lvEn, lvMath, enRatio }) {
+  // seenAt(key): 最近出した時刻（ms）。まだ出していなければ 0
+  function next({ g, lvEn, lvMath, enRatio, seenAt }) {
     const plan = PLAN[g] || PLAN[0];
-    const useEn = Math.random() < enRatio;
-    const list = useEn ? plan.en : plan.math;
-    const gen = weightedPick(list, lastGen);
-    lastGen = gen;
-    const lv = useEn ? lvEn : lvMath;
-    for (let tries = 0; tries < 5; tries++) {
-      try {
-        const q = gen({ g, lv });
-        q.type = q.type || 'choice';
-        return q;
-      } catch (e) { console.warn(e); }
+    let best = null, bestAt = Infinity, bestGen = null;
+    const firstEn = Math.random() < enRatio;
+    for (let tries = 0; tries < 80; tries++) {
+      // はじめの 50回は えらんだ 教科の中で さがす（えいごの わりあいを たもつ）
+      const useEn = tries < 50 ? firstEn : Math.random() < enRatio;
+      const gen = weightedPick(useEn ? plan.en : plan.math, lastGen);
+      let q;
+      try { q = gen({ g, lv: useEn ? lvEn : lvMath }); } catch (e) { console.warn(e); continue; }
+      q.type = q.type || 'choice';
+      q.key = keyOf(q);
+      const at = seenAt ? seenAt(q.key) : 0;
+      if (!at) { lastGen = gen; return q; }
+      // ぜんぶ 最近 出た問題なら、いちばん 前に 出たものを つかう
+      if (at < bestAt) { best = q; bestAt = at; bestGen = gen; }
     }
-    return M.count({ g, lv });
+    if (best) { lastGen = bestGen; return best; }
+    const q = M.count({ g, lv: 1 }); q.type = 'choice'; q.key = keyOf(q);
+    return q;
   }
 
-  return { next, PLAN, _E: E, _M: M };
+  return { next, keyOf, PLAN, _E: E, _M: M };
 })();

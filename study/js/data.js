@@ -15,12 +15,12 @@ window.STUDY_DATA = (function () {
     W('animal', 0, 'bear', 'くま', '🐻'),
     W('animal', 0, 'fish', 'さかな', '🐟'),
     W('animal', 0, 'bird', 'とり', '🐦'),
-    W('animal', 1, 'monkey', 'さる', '🐵'),
-    W('animal', 1, 'pig', 'ぶた', '🐷'),
-    W('animal', 1, 'cow', 'うし', '🐮'),
+    W('animal', 0, 'monkey', 'さる', '🐵'),
+    W('animal', 0, 'pig', 'ぶた', '🐷'),
+    W('animal', 0, 'cow', 'うし', '🐮'),
     W('animal', 1, 'horse', 'うま', '🐴'),
-    W('animal', 1, 'frog', 'かえる', '🐸'),
-    W('animal', 1, 'panda', 'パンダ', '🐼'),
+    W('animal', 0, 'frog', 'かえる', '🐸'),
+    W('animal', 0, 'panda', 'パンダ', '🐼'),
     W('animal', 2, 'tiger', 'とら', '🐯'),
     W('animal', 2, 'giraffe', 'キリン', '🦒'),
     W('animal', 2, 'penguin', 'ペンギン', '🐧'),
@@ -38,8 +38,8 @@ window.STUDY_DATA = (function () {
     W('fruit', 0, 'apple', 'りんご', '🍎'),
     W('fruit', 0, 'banana', 'バナナ', '🍌'),
     W('fruit', 0, 'strawberry', 'いちご', '🍓'),
-    W('fruit', 1, 'orange', 'オレンジ', '🍊'),
-    W('fruit', 1, 'grapes', 'ぶどう', '🍇'),
+    W('fruit', 0, 'orange', 'オレンジ', '🍊'),
+    W('fruit', 0, 'grapes', 'ぶどう', '🍇'),
     W('fruit', 1, 'melon', 'メロン', '🍈'),
     W('fruit', 2, 'peach', 'もも', '🍑'),
     W('fruit', 2, 'lemon', 'レモン', '🍋'),
@@ -48,10 +48,10 @@ window.STUDY_DATA = (function () {
     W('fruit', 3, 'pineapple', 'パイナップル', '🍍'),
     W('fruit', 4, 'kiwi fruit', 'キウイ', '🥝'),
     // たべもの・のみもの
-    W('food', 1, 'bread', 'パン', '🍞'),
-    W('food', 1, 'egg', 'たまご', '🥚'),
-    W('food', 1, 'milk', 'ぎゅうにゅう', '🥛'),
-    W('food', 1, 'cake', 'ケーキ', '🍰'),
+    W('food', 0, 'bread', 'パン', '🍞'),
+    W('food', 0, 'egg', 'たまご', '🥚'),
+    W('food', 0, 'milk', 'ぎゅうにゅう', '🥛'),
+    W('food', 0, 'cake', 'ケーキ', '🍰'),
     W('food', 2, 'rice', 'ごはん', '🍚'),
     W('food', 2, 'pizza', 'ピザ', '🍕'),
     W('food', 2, 'ice cream', 'アイスクリーム', '🍦'),
@@ -71,8 +71,8 @@ window.STUDY_DATA = (function () {
     // のりもの
     W('vehicle', 0, 'car', 'くるま', '🚗'),
     W('vehicle', 0, 'bus', 'バス', '🚌'),
-    W('vehicle', 1, 'train', 'でんしゃ', '🚃'),
-    W('vehicle', 1, 'airplane', 'ひこうき', '✈️'),
+    W('vehicle', 0, 'train', 'でんしゃ', '🚃'),
+    W('vehicle', 0, 'airplane', 'ひこうき', '✈️'),
     W('vehicle', 1, 'ship', 'ふね', '🚢'),
     W('vehicle', 2, 'bike', 'じてんしゃ', '🚲'),
     W('vehicle', 2, 'taxi', 'タクシー', '🚕'),
@@ -80,16 +80,16 @@ window.STUDY_DATA = (function () {
     W('vehicle', 3, 'truck', 'トラック', '🚚'),
     W('vehicle', 4, 'helicopter', 'ヘリコプター', '🚁'),
     // からだ
-    W('body', 1, 'eye', 'め', '👁️'),
-    W('body', 1, 'ear', 'みみ', '👂'),
-    W('body', 1, 'nose', 'はな', '👃'),
-    W('body', 1, 'mouth', 'くち', '👄'),
+    W('body', 0, 'eye', 'め', '👁️'),
+    W('body', 0, 'ear', 'みみ', '👂'),
+    W('body', 0, 'nose', 'はな', '👃'),
+    W('body', 0, 'mouth', 'くち', '👄'),
     W('body', 2, 'hand', 'て', '✋'),
     W('body', 2, 'foot', 'あし', '🦶'),
     // しぜん・てんき
-    W('nature', 1, 'sun', 'たいよう', '☀️'),
-    W('nature', 1, 'moon', 'つき', '🌙'),
-    W('nature', 1, 'star', 'ほし', '⭐'),
+    W('nature', 0, 'sun', 'たいよう', '☀️'),
+    W('nature', 0, 'moon', 'つき', '🌙'),
+    W('nature', 0, 'star', 'ほし', '⭐'),
     W('nature', 2, 'flower', 'はな', '🌸'),
     W('nature', 2, 'tree', 'き', '🌳'),
     W('nature', 2, 'rainbow', 'にじ', '🌈'),
@@ -101,8 +101,8 @@ window.STUDY_DATA = (function () {
     W('weather', 3, 'cloudy', 'くもり', '☁️'),
     W('weather', 4, 'snowy', 'ゆき', '⛄'),
     // もの
-    W('thing', 1, 'ball', 'ボール', '⚽'),
-    W('thing', 1, 'book', 'ほん', '📕'),
+    W('thing', 0, 'ball', 'ボール', '⚽'),
+    W('thing', 0, 'book', 'ほん', '📕'),
     W('thing', 2, 'cap', 'ぼうし', '🧢'),
     W('thing', 2, 'shoes', 'くつ', '👟'),
     W('thing', 2, 'bag', 'かばん', '🎒'),
@@ -306,5 +306,14 @@ window.STUDY_DATA = (function () {
     { en: 'P.E.', ja: 'たいいく' }, { en: 'arts and crafts', ja: 'ずこう' }, { en: 'home economics', ja: 'かていか' },
   ];
 
-  return { words, colors, shapes, numbers, numberWord, days, months, ordinals, greetings, qa, sentences, past, countries, subjects };
+  // 「three dogs」の ような 問題に つかう 複数形
+  const plurals = {
+    dog: 'dogs', cat: 'cats', rabbit: 'rabbits', elephant: 'elephants', lion: 'lions', bear: 'bears', fish: 'fish', bird: 'birds',
+    monkey: 'monkeys', pig: 'pigs', cow: 'cows', frog: 'frogs', panda: 'pandas', apple: 'apples', banana: 'bananas',
+    strawberry: 'strawberries', orange: 'oranges', car: 'cars', bus: 'buses', train: 'trains', airplane: 'airplanes',
+    ball: 'balls', book: 'books', star: 'stars', egg: 'eggs', cake: 'cakes', tiger: 'tigers', penguin: 'penguins',
+    peach: 'peaches', lemon: 'lemons', cherry: 'cherries', flower: 'flowers', tree: 'trees', tomato: 'tomatoes', carrot: 'carrots',
+  };
+
+  return { plurals, words, colors, shapes, numbers, numberWord, days, months, ordinals, greetings, qa, sentences, past, countries, subjects };
 })();
