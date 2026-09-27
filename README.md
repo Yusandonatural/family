@@ -9,3 +9,24 @@
 - お手伝いの種類・金額・こどもは画面下から追加・変更・削除できます
 - 金額を変更しても、すでに記録した日の金額は変わりません
 - 記録はブラウザ（localStorage）に保存されます。「バックアップ」から JSON ファイルに書き出し・読み込みができます
+
+---
+
+# まいにち30ぷん（英語＆算数） `study/`
+
+年少さん〜小学6年生向けの家庭学習アプリです。30分のレッスン1回クリアごとにゲームタイム30分。
+公開URL：https://yusandonatural.github.io/family/study/
+
+- 英語が中心（標準7割）＋算数。学年別に問題を自動生成、正解率で難しさを自動調整
+- スタンプカレンダー、連続日数、スター、メダルで毎日続けるしかけ
+- はみがき・しゅくだい等のタイマー、iPad/Android の時計アプリのタイマー連携
+- iPad 向けレイアウト、ホーム画面に追加して全画面・オフラインで使える
+- 記録は端末（localStorage）に保存。保護者画面からバックアップ／復元
+
+## 公開（GitHub Pages）
+
+`main` に push すると `.github/workflows/pages.yml` が自動でデプロイします
+（初回のみ Settings → Pages → Source を「GitHub Actions」にする）。
+
+- こづかい帳：https://yusandonatural.github.io/family/
+- 学習アプリ：https://yusandonatural.github.io/family/study/

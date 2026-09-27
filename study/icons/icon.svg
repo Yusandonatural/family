@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#ffb938"/>
+  <circle cx="256" cy="256" r="178" fill="#fff8ec"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#ff8a3d" stroke-width="30" stroke-linecap="round" stroke-dasharray="942" stroke-dashoffset="236" transform="rotate(-90 256 256)"/>
+  <text x="256" y="250" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-weight="900" font-size="150" fill="#3b2f2a">30</text>
+  <text x="256" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="64" fill="#3d8bff">ABC</text>
+  <text x="400" y="140" text-anchor="middle" font-size="90">⭐</text>
+</svg>
