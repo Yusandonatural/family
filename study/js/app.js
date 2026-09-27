@@ -53,6 +53,30 @@
     if (!p.days[k]) p.days[k] = { sec: 0, q: 0, c: 0, lessons: 0, lessonSec: 0, cleared: false, gameLeft: 0, gameTotal: 0, gameRunAt: null, stamp: null };
     return p.days[k];
   }
+  // ---------- 目標（えいかいわロード・算数の目標） ----------
+  const STEPS = window.CONV_STEPS || [];
+  const CONV_SHARE = 0.6; // えいごの もんだいの うち、えいかいわロードから だす わりあい
+  const MASTER = 2;       // 1つの ひょうげんを 何回 せいかいしたら「おぼえた」か
+  function goals(p) {
+    if (!p.conv) p.conv = { si: (window.CONV_START || [])[p.grade] || 0, target: STEPS.length - 1, due: '', m: {}, cleared: {} };
+    if (!p.mathGoal) p.mathGoal = { unit: -1, target: 30, count: 0, done: '' };
+    return p;
+  }
+  function stepProgress(p, si) {
+    const units = Questions.unitsOf(si);
+    const got = units.filter((u) => (p.conv.m[u.key] || 0) >= MASTER).length;
+    return { got, total: units.length };
+  }
+  // ペース：これまでの クリアの はやさから、目標ステップに つく日を よそく
+  function convPace(p) {
+    const c = p.conv, left = c.target - c.si + 1;
+    if (left <= 0) return null;
+    const dates = Object.values(c.cleared).sort();
+    const perStep = dates.length >= 2 ? (new Date(dates[dates.length - 1]) - new Date(dates[0])) / 864e5 / (dates.length - 1) : 7;
+    const eta = addDays(new Date(), Math.ceil(Math.max(1, perStep) * left));
+    return { left, eta, late: c.due ? dkey(eta) > c.due : false };
+  }
+
   // レッスン：studyMin ぷん やるごとに 1かい。1かいごとに gameMin ぷん もらえる
   const lessonsOf = (d) => (d ? (d.lessons != null ? d.lessons : d.cleared ? 1 : 0) : 0);
   const lessonSecOf = (d) => (d.lessonSec != null ? d.lessonSec : d.cleared ? 0 : d.sec);
@@ -137,6 +161,34 @@
         speechSynthesis.speak(u);
       }
     } catch (e) { /* よみあげ非対応 */ }
+  }
+
+  // ---------- こえの にんしき（まねして いう れんしゅう） ----------
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  function hearSpeech(cb) {
+    if (!SR) return cb(null);
+    let done = false;
+    const fin = (v) => { if (!done) { done = true; cb(v); } };
+    try {
+      try { speechSynthesis.cancel(); } catch (e) { /* なし */ }
+      const r = new SR();
+      r.lang = 'en-US'; r.interimResults = false; r.maxAlternatives = 5;
+      r.onresult = (e) => fin(Array.from(e.results[0]).map((a) => a.transcript));
+      r.onerror = (e) => fin(e.error === 'no-speech' ? [] : null);
+      r.onend = () => fin([]);
+      r.start();
+      setTimeout(() => { try { r.stop(); } catch (e) { /* なし */ } }, 7000);
+    } catch (e) { fin(null); }
+  }
+  const wordsOf = (t) => t.toLowerCase().replace(/[^a-z0-9' ]/g, ' ').split(/\s+/).filter(Boolean);
+  function speechScore(target, heard) {
+    const want = wordsOf(target);
+    let best = 0;
+    for (const h of heard) {
+      const got = new Set(wordsOf(h));
+      best = Math.max(best, want.filter((w) => got.has(w) || got.has(w.replace(/'.*/, ''))).length / want.length);
+    }
+    return best;
   }
 
   // ---------- 画面の スリープ防止 ----------
@@ -245,6 +297,8 @@
               </div>
             </div>
 
+            ${goalCardHTML(p)}
+
             <div class="card game ${d.cleared ? '' : 'locked'}">
               <div class="game-ico">${d.cleared ? '🎮' : '🔒'}</div>
               <div class="game-txt">
@@ -272,11 +326,113 @@
     on('.go-study', 'click', () => { SFX.tap(); showStudy(); });
     on('.go-game', 'click', () => { SFX.tap(); showGame(); });
     on('.go-timer', 'click', () => { SFX.tap(); showTimer(showDash); });
+    on('.go-road', 'click', () => { SFX.tap(); showRoad(); });
     if (timerRunning()) every(1000, () => { const el = $('.go-timer .tchip'); if (el) el.textContent = fmt(timerLeft()); });
     on('.switch', 'click', () => { if (S.profiles.length > 1) { S.current = null; save(); showHome(); } });
     on('.parent-link', 'click', () => pinGate(showParent));
     if (running) every(1000, () => { const el = $('.gl'); if (el) el.textContent = fmt(gameRemaining(today(p))); });
     mountCalendar($('[data-cal]'), p, false);
+  }
+
+  // ---------- 目標カード ----------
+  function goalCardHTML(p) {
+    goals(p);
+    const c = p.conv, st = STEPS[c.si];
+    if (!st) return '';
+    const allDone = !!c.cleared[STEPS[STEPS.length - 1].id];
+    const pr = stepProgress(p, c.si);
+    const pace = convPace(p);
+    const mg = p.mathGoal, units = Questions.mathUnits(p.grade);
+    const mathRow = mg.unit >= 0 && units[mg.unit] ? `
+      <button class="goal-row go-road">
+        <span class="goal-ico">🧮</span>
+        <span class="goal-txt"><small>さんすうの もくひょう</small><b>${esc(units[mg.unit])}</b>
+          <span class="gbar math"><span style="width:${Math.min(100, (mg.count / mg.target) * 100)}%"></span></span>
+          <small>${mg.done ? '🏅 たっせい！' : `${mg.count} / ${mg.target}もん せいかい`}</small></span>
+      </button>` : '';
+    return `<div class="card goal">
+      <div class="goal-head"><h2>🎯 もくひょう</h2><button class="link go-road">えいかいわロード ›</button></div>
+      <button class="goal-row go-road">
+        <span class="goal-ico">${allDone ? '🏆' : st.icon}</span>
+        <span class="goal-txt"><small>えいかいわ ステップ ${c.si + 1} / ${STEPS.length}</small><b>${allDone ? 'ぜんぶ クリア！' : esc(st.title)}</b>
+          <span class="gbar"><span style="width:${allDone ? 100 : (pr.got / pr.total) * 100}%"></span></span>
+          <small>${allDone ? 'えいごで かいわが できるね！' : `${pr.got} / ${pr.total} おぼえた`}${pace && c.due ? `・${pace.late ? '⏳ いそごう' : '👍 じゅんちょう'}` : ''}</small></span>
+      </button>
+      ${mathRow}
+    </div>`;
+  }
+
+  // =========================================================
+  //  えいかいわロード（ゴールまでの みち）
+  // =========================================================
+  function showRoad() {
+    const p = cur(); if (!p) return showHome();
+    goals(p);
+    const c = p.conv;
+    const pace = convPace(p);
+    const rows = STEPS.map((st, i) => {
+      const done = !!c.cleared[st.id];
+      const now = i === c.si && !done;
+      const pr = stepProgress(p, i);
+      const state = done ? 'done' : now ? 'now' : i < c.si ? 'skip' : 'lock';
+      return `<li class="road-step ${state} ${i === c.target ? 'target' : ''}">
+        <button class="road-btn" data-i="${i}" ${state === 'lock' ? 'disabled' : ''}>
+          <span class="road-dot">${done ? '✅' : now ? st.icon : state === 'skip' ? '⏭️' : '🔒'}</span>
+          <span class="road-txt">
+            <small>ステップ ${i + 1}${i === c.target ? ' ・ 🚩 もくひょう' : ''}</small>
+            <b>${esc(st.title)}</b>
+            ${now ? `<span class="gbar"><span style="width:${(pr.got / pr.total) * 100}%"></span></span><small>${pr.got} / ${pr.total} おぼえた・タップで ことばを きく</small>` : done ? `<small>${c.cleared[st.id].slice(5).replace('-', '/')} クリア</small>` : ''}
+          </span>
+        </button>
+      </li>`;
+    }).join('');
+    render(`
+      <section class="screen road">
+        <header class="topbar"><button class="icon-btn back" aria-label="もどる">←</button><h2>🗺️ えいかいわロード</h2><span></span></header>
+        <div class="card road-goal">
+          <div class="road-flag">🏁</div>
+          <div><small>ゴール</small><b class="rg-title">えいごで かいわが できる！</b>
+            <p>${c.target < STEPS.length - 1 ? `🚩 いまの もくひょう：ステップ${c.target + 1}「${esc(STEPS[c.target].title)}」まで${c.due ? `（${+c.due.slice(5, 7)}/${+c.due.slice(8)} まで）` : ''}` : `🚩 もくひょう：ステップ${STEPS.length}まで ぜんぶ${c.due ? `（${+c.due.slice(5, 7)}/${+c.due.slice(8)} まで）` : ''}`}
+            ${pace ? `<br>このペースだと <b>${pace.eta.getMonth() + 1}/${pace.eta.getDate()}</b> ごろ とうちゃく${c.due ? (pace.late ? ' ⏳' : ' 👍') : ''}` : '<br>🎉 もくひょう たっせい！'}</p>
+          </div>
+        </div>
+        <ol class="road-list">${rows}</ol>
+      </section>`, 'road');
+    on('.back', 'click', showDash);
+    on('.road-btn', 'click', (e) => { SFX.tap(); showStep(+e.currentTarget.dataset.i); });
+    const nowEl = $('.road-step.now'); if (nowEl) nowEl.scrollIntoView({ block: 'center' });
+  }
+
+  // ステップの ことばリスト（きいて れんしゅう）
+  function showStep(si) {
+    const p = cur(); if (!p) return showHome();
+    const st = STEPS[si];
+    const units = Questions.unitsOf(si);
+    const row = (u) => {
+      const n = p.conv.m[u.key] || 0;
+      return `<li class="phrase">
+        <button class="say-btn2" data-t="${esc(u.en)}" aria-label="きく">🔊</button>
+        <span class="ph-e">${u.e || ''}</span>
+        <span class="ph-txt">${u.kind === 't' ? `<span class="en xs q">${esc(u.q)}</span>` : ''}<b class="en">${esc(u.en)}</b><small>${esc(u.ja)}</small></span>
+        <span class="ph-m" title="せいかい ${n}かい">${n >= MASTER ? '⭐' : '☆'.repeat(Math.max(0, MASTER - n)) + '★'.repeat(n)}</span>
+      </li>`;
+    };
+    render(`
+      <section class="screen stepscr">
+        <header class="topbar"><button class="icon-btn back" aria-label="もどる">←</button><h2>ステップ ${si + 1}</h2><span></span></header>
+        <div class="card step-head">
+          <div class="step-ico">${st.icon}</div>
+          <div><b>${esc(st.title)}</b><p>${esc(st.cando)}</p></div>
+        </div>
+        <div class="card"><h3>つかう ことば</h3><ul class="phrases">${units.filter((u) => u.kind === 'i').map(row).join('')}</ul></div>
+        <div class="card"><h3>やりとり（しつもん → こたえ）</h3><ul class="phrases">${units.filter((u) => u.kind === 't').map(row).join('')}</ul></div>
+      </section>`, 'step');
+    on('.back', 'click', showRoad);
+    on('.say-btn2', 'click', (e) => {
+      const b = e.currentTarget;
+      const u = units.find((x) => x.en === b.dataset.t);
+      speak(u && u.kind === 't' ? [{ text: u.q, lang: 'en' }, { text: u.en, lang: 'en' }] : [{ text: b.dataset.t, lang: 'en' }]);
+    });
   }
 
   // ---------- カレンダー ----------
@@ -461,7 +617,17 @@
     function nextQ() {
       const due = retry.findIndex((r) => r.at <= Date.now() && !seenAt(r.q.key));
       if (due >= 0) { q = retry.splice(due, 1)[0].q; q.retry = true; }
-      else q = Questions.next({ g: p.grade, lvEn: p.lvEn, lvMath: p.lvMath, enRatio: p.enRatio, seenAt });
+      else {
+        goals(p);
+        const useEn = Math.random() < p.enRatio;
+        q = null;
+        if (useEn && Math.random() < CONV_SHARE) {
+          // いまの ステップ 8わり、クリアした ステップの ふくしゅう 2わり
+          const si = p.conv.si > 0 && Math.random() < 0.2 ? Math.floor(Math.random() * p.conv.si) : Math.min(p.conv.si, STEPS.length - 1);
+          q = Questions.nextConv({ g: p.grade, si, mastery: p.conv.m, seenAt });
+        }
+        if (!q) q = Questions.next({ g: p.grade, lvEn: p.lvEn, lvMath: p.lvMath, enRatio: useEn ? 1 : 0, seenAt, mathFocus: p.mathGoal.done ? -1 : p.mathGoal.unit });
+      }
       seen[q.key] = Date.now();
       answered = false; input = '';
       drawQ();
@@ -473,7 +639,16 @@
         ? `<div class="answer-box"><span class="ans-val">&nbsp;</span></div>
            <div class="keypad">${['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '.', 'del'].map((k) => `<button class="key" data-k="${k}">${k === 'del' ? '⌫' : k}</button>`).join('')}
            <button class="key ok" data-k="ok">こたえる</button></div>`
-        : `<div class="choices c${q.cols || q.choices.length}">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${c.html}</button>`).join('')}</div>`;
+        : q.type === 'speak'
+        ? `<div class="speak-box">
+             <button class="btn big primary mic">${SR ? '🎤 いってみる' : '🗣️ こえに だして いってみよう'}</button>
+             <p class="heard" aria-live="polite">${SR ? 'ボタンを おして、えいごで いってね' : 'きこえた とおりに まねして いってね'}</p>
+             <div class="speak-btns">
+               <button class="btn said ${SR ? 'hidden' : ''}">⭕ いえた！</button>
+               <button class="btn ghost skip">つぎへ</button>
+             </div>
+           </div>`
+        : `<div class="choices c${q.cols || q.choices.length}">${q.choices.map((c, i) => `<button class="choice" data-i="${i}">${c.html}${c.say ? '<span class="say-mini" role="button" aria-label="きく">🔊</span>' : ''}</button>`).join('')}</div>`;
       qwrap.innerHTML = `
         <div class="qcard ${q.subj}">
           <div class="qtag">${q.subj === 'en' ? '🔤 えいご' : '🔢 さんすう'}・${q.kind}${q.retry ? ' <span class="pill">もういちど</span>' : ''}</div>
@@ -484,12 +659,39 @@
         </div>
         <div class="answers ${q.type === 'input' ? 'is-input' : ''}">${choicesHTML}</div>
         <div class="feedback hidden"></div>`;
-      qwrap.querySelectorAll('.choice').forEach((b) => b.addEventListener('click', () => { act(); if (!answered) answer(q.choices[+b.dataset.i].value, b); }));
+      qwrap.querySelectorAll('.choice').forEach((b) => b.addEventListener('click', (e) => {
+        act();
+        const c = q.choices[+b.dataset.i];
+        if (e.target.closest('.say-mini')) { speak([c.say]); return; }
+        if (!answered) answer(c.value, b);
+      }));
+      if (q.type === 'speak') setupSpeak();
       qwrap.querySelectorAll('.key').forEach((b) => b.addEventListener('click', () => { act(); press(b.dataset.k); }));
       const lb = qwrap.querySelector('.listen-btn, .say-btn');
       if (lb) lb.addEventListener('click', () => { act(); speak(q.say); });
       if (q.say && (listen || p.grade <= 3 || q.subj === 'en')) setTimeout(() => speak(q.say), 250);
       else if (p.grade <= 2) speak([{ text: q.prompt.replace(/<[^>]+>/g, ''), lang: 'ja' }]);
+    }
+
+    function setupSpeak() {
+      const heard = qwrap.querySelector('.heard'), mic = qwrap.querySelector('.mic'), said = qwrap.querySelector('.said');
+      let tries = 0;
+      mic.addEventListener('click', () => {
+        act();
+        if (!SR) { speak(q.say); return; }
+        mic.disabled = true; mic.textContent = '👂 きいているよ…';
+        hearSpeech((alts) => {
+          mic.disabled = false; mic.textContent = '🎤 もういちど';
+          tries++;
+          if (alts === null) { heard.textContent = 'マイクが つかえないので、まねして いえたら「いえた！」を おしてね'; said.classList.remove('hidden'); return; }
+          const sc = alts.length ? speechScore(q.speakText, alts) : 0;
+          if (sc >= 0.6) { heard.innerHTML = `きこえたよ：<b>${esc(alts[0])}</b>`; answer(q.answer, null); return; }
+          heard.innerHTML = alts.length ? `きこえたのは「${esc(alts[0])}」。もういちど いってみよう！` : 'きこえなかったよ。もういちど！';
+          if (tries >= 2) said.classList.remove('hidden');
+        });
+      });
+      said.addEventListener('click', () => { act(); if (!answered) answer(q.answer, null); });
+      qwrap.querySelector('.skip').addEventListener('click', () => { act(); if (!answered) { answered = true; nextQ(); } });
     }
 
     function press(k) {
@@ -508,6 +710,8 @@
       d.q += 1; if (ok) d.c += 1;
       const kk = (p.kinds[q.kind] = p.kinds[q.kind] || { q: 0, c: 0 });
       kk.q += 1; if (ok) kk.c += 1;
+      let goalMsg = null;
+      if (ok) goalMsg = advanceGoals(p, q, d);
       const rec = q.subj === 'en' ? p.recentEn : p.recentMath;
       rec.push(ok ? 1 : 0); if (rec.length > 20) rec.shift();
       adaptLevel(p);
@@ -531,7 +735,8 @@
         fb.innerHTML = `<span class="mark">⭕</span><span>${praise(combo)}</span>`;
         if (q.reveal) setTimeout(() => speak(q.reveal), 150);
         save(); updateBar();
-        setTimeout(afterAnswer, q.reveal ? 1400 : 900);
+        if (goalMsg) setTimeout(() => goalCelebrate(goalMsg, afterAnswer), 900);
+        else setTimeout(afterAnswer, q.reveal ? 1400 : 900);
       } else {
         combo = 0;
         SFX.ng();
@@ -561,6 +766,52 @@
 
     updateBar();
     nextQ();
+  }
+
+  // 正解したら 目標を すすめる。クリアしたら おいわいの ないようを かえす
+  function advanceGoals(p, q, d) {
+    goals(p);
+    let msg = null;
+    if (q.conv) {
+      const c = p.conv;
+      c.m[q.conv] = (c.m[q.conv] || 0) + 1;
+      const si = c.si;
+      if (q.step === si && STEPS[si] && !c.cleared[STEPS[si].id]) {
+        const pr = stepProgress(p, si);
+        if (pr.got >= pr.total) {
+          c.cleared[STEPS[si].id] = dkey();
+          if (si < STEPS.length - 1) c.si = si + 1;
+          msg = { icon: STEPS[si].icon, title: `ステップ${si + 1} クリア！`, body: `「${STEPS[si].title}」ように なったね！`, next: si < STEPS.length - 1 ? `つぎは ステップ${si + 2}「${STEPS[si + 1].title}」` : '🏆 えいかいわロード ぜんぶ クリア！', say: 'Great job! You did it!' };
+          if (window.trackConversion) window.trackConversion('app_action_complete', { action: 'conv_step_clear', step: si + 1 });
+        }
+      }
+    }
+    const mg = p.mathGoal;
+    if (q.subj === 'math' && mg.unit >= 0 && !mg.done && q.unit === mg.unit) {
+      mg.count += 1;
+      if (mg.count >= mg.target) {
+        mg.done = dkey();
+        const name = Questions.mathUnits(p.grade)[mg.unit] || '';
+        msg = msg || { icon: '🧮', title: 'さんすうの もくひょう たっせい！', body: `「${name}」を ${mg.target}もん せいかい！`, next: 'おうちの人に つぎの もくひょうを きめて もらおう', say: 'Excellent!' };
+      }
+    }
+    return msg;
+  }
+
+  function goalCelebrate(m, then) {
+    SFX.fanfare();
+    speak([{ text: m.say, lang: 'en' }]);
+    const ov = document.createElement('div');
+    ov.className = 'overlay goal-ov';
+    ov.innerHTML = `<div class="ov-card goal-card">
+      <div class="ov-emoji">${m.icon}🏅</div>
+      <h2>${esc(m.title)}</h2>
+      <p>${esc(m.body)}</p>
+      <p class="goal-next">${esc(m.next)}</p>
+      <button class="btn big primary">つづける</button>
+    </div>`;
+    ov.querySelector('button').addEventListener('click', () => { ov.remove(); then(); });
+    app.appendChild(ov);
   }
 
   function reshuffle(q) {
@@ -943,6 +1194,7 @@
           <h3>つかいかた</h3>
           <ol>
             <li>毎日「べんきょう スタート」。英語（約7割）と算数（約3割）の問題が学年に合わせて出ます。</li>
+            <li><b>🎯 目標：</b>英語は「英語で会話ができる」をゴールにした15ステップの「えいかいわロード」で進みます（あいさつ → 気持ち → 名前 → 好きなもの … → 自己紹介スピーチ）。聞き取り・受け答え・穴うめ・並べかえに加え、マイクで<b>声に出して言う練習</b>もあります。目標のステップと期限、算数で重点的にやる単元は、お子さまの「せってい」で決められます。</li>
             <li>タイマーは <b>問題に取り組んでいる間だけ</b> 進みます（${IDLE_LIMIT}秒操作がないと自動で止まります）。途中でやめても続きから再開できます。</li>
             <li><b>レッスン1回（標準30分）をクリアするごとに、ゲームタイム30分</b>がもらえます。2回やれば60分、3回で90分と貯まります（1日の上限回数はお子さまごとの設定で変更できます）。</li>
             <li>ゲームタイムは「スタート／ストップ」で使った分だけ減ります。残り5分・1分でお知らせ、0分でアラームが鳴ります。その日のうちに使い切りです。</li>
@@ -1000,6 +1252,36 @@
     });
   }
 
+  function goalFormHTML(p, opts) {
+    const c = p.conv, mg = p.mathGoal;
+    const stepOpts = STEPS.map((st, i) => [i, `ステップ${i + 1}：${st.title}`]);
+    const units = Questions.mathUnits(p.grade);
+    return `<fieldset class="goal-set">
+      <legend>🎯 目標</legend>
+      <p class="hint">英語は「英語で会話ができる」ことをゴールに、あいさつ → 気持ち → 自己紹介 → 好きなもの … → 自己紹介スピーチ まで15ステップで進みます。ステップ内の表現・やりとりを全部${MASTER}回ずつ正解すると次のステップに進みます。</p>
+      <label>英会話：いまのステップ
+        <select name="convSi">${opts(stepOpts, c.si)}</select>
+      </label>
+      <div class="two">
+        <label>英会話：目標のステップ
+          <select name="convTarget">${opts(stepOpts, c.target)}</select>
+        </label>
+        <label>いつまでに（任意）
+          <input type="date" name="convDue" value="${esc(c.due || '')}">
+        </label>
+      </div>
+      <div class="two">
+        <label>算数：重点的にやる単元
+          <select name="mathUnit">${opts([[-1, 'おまかせ（バランスよく）']].concat(units.map((u, i) => [i, u])), mg.unit)}</select>
+        </label>
+        <label>目標の正解数
+          <select name="mathTarget">${opts([[20, '20問'], [30, '30問'], [50, '50問'], [100, '100問']], mg.target)}</select>
+        </label>
+      </div>
+      <p class="hint">算数の単元を選ぶと、算数の問題の約6割がその単元から出ます。${mg.unit >= 0 ? `いま：${mg.count}/${mg.target}問${mg.done ? '（達成済み）' : ''}` : ''}</p>
+    </fieldset>`;
+  }
+
   function showProfileForm(id, first) {
     const p = id ? S.profiles.find((x) => x.id === id) : null;
     const v = p || { name: '', grade: 3, avatar: AVATARS[S.profiles.length % AVATARS.length], studyMin: 30, gameMin: 30, enRatio: 0.7, maxLessons: 0 };
@@ -1031,6 +1313,7 @@
             <select name="enRatio">${opts(ENRATIOS.map((r) => [r, `英語 ${Math.round(r * 100)}% ／ 算数 ${100 - Math.round(r * 100)}%`]), v.enRatio)}</select>
           </label>
           ${p ? `<p class="hint">いまの難しさ：英語「${p.lvEn > 1 ? 'ふつう' : 'かんたん'}」・算数「${p.lvMath > 1 ? 'ふつう' : 'かんたん'}」（正解率で自動調整）</p>` : ''}
+          ${p ? goalFormHTML(goals(p), opts) : '<p class="hint">🎯 英会話・算数の目標は、登録したあとに設定できます（最初は学年に合わせて自動で決まります）。</p>'}
           <button class="btn big primary" type="submit">${p ? '保存' : '登録する'}</button>
         </form>
         ${p ? `<div class="card">
@@ -1051,6 +1334,7 @@
       const name = String(f.get('name') || '').trim();
       if (!name) return;
       const t = p || newProfile(name, 0, '🐶');
+      const gradeChanged = !!p && p.grade !== +f.get('grade');
       t.name = name;
       t.grade = +f.get('grade');
       t.avatar = f.get('avatar') || t.avatar;
@@ -1058,6 +1342,17 @@
       t.gameMin = +f.get('gameMin');
       t.enRatio = +f.get('enRatio');
       t.maxLessons = +f.get('maxLessons');
+      if (p) {
+        goals(t);
+        const c = t.conv, si = +f.get('convSi');
+        if (si !== c.si) { c.si = si; for (const st of STEPS.slice(si)) delete c.cleared[st.id]; }
+        c.target = Math.max(+f.get('convTarget'), c.si);
+        c.due = String(f.get('convDue') || '');
+        const unit = +f.get('mathUnit'), target = +f.get('mathTarget');
+        const mg = t.mathGoal;
+        if (unit !== mg.unit || gradeChanged) { mg.unit = gradeChanged ? -1 : unit; mg.count = 0; mg.done = ''; }
+        mg.target = target;
+      } else goals(t);
       if (!p) { S.profiles.push(t); S.current = t.id; }
       save();
       if (first) showDash(); else showParent();
@@ -1083,6 +1378,19 @@
     }
   }
 
+  function goalReportHTML(p) {
+    const c = p.conv, pace = convPace(p), mg = p.mathGoal, units = Questions.mathUnits(p.grade);
+    const pr = STEPS[c.si] ? stepProgress(p, c.si) : { got: 0, total: 1 };
+    return `<div class="card">
+      <h3>🎯 目標の進み具合</h3>
+      <p><b>英会話：ステップ${c.si + 1}「${esc(STEPS[c.si].title)}」</b>（${pr.got}/${pr.total} 習得）<br>
+      <small>${esc(STEPS[c.si].cando)}</small><br>
+      目標：ステップ${c.target + 1}${c.due ? `（${c.due} まで）` : ''}${pace ? ` ・ このペースだと ${dkey(pace.eta)} ごろ到達${c.due ? (pace.late ? '（期限に間に合わない見込み）' : '（期限内の見込み）') : ''}` : ' ・ 達成！'}</p>
+      <ul class="cleared-list">${STEPS.map((st, i) => (c.cleared[st.id] ? `<li>✅ ステップ${i + 1} ${esc(st.title)} <small>${c.cleared[st.id]}</small></li>` : '')).join('') || '<li><small>まだクリアしたステップはありません</small></li>'}</ul>
+      <p><b>算数：</b>${mg.unit >= 0 && units[mg.unit] ? `${esc(units[mg.unit])} ${mg.count}/${mg.target}問${mg.done ? `（${mg.done} 達成）` : ''}` : 'おまかせ（単元の指定なし）'}</p>
+    </div>`;
+  }
+
   function showReport(id) {
     const p = S.profiles.find((x) => x.id === id); if (!p) return showParent();
     const days = [];
@@ -1103,6 +1411,7 @@
           <p>クリア ${clearedCount(p)}日・レッスン ${Object.values(p.days).reduce((n, d) => n + lessonsOf(d), 0)}回・いまの連続 ${streak(p)}日・最長 ${bestStreak(p)}日<br>
           学習 ${Math.floor(total.sec / 3600)}時間${Math.floor((total.sec % 3600) / 60)}分・${total.q}問・正解率 ${total.q ? Math.round((total.c / total.q) * 100) : 0}%・⭐${p.stars}</p>
         </div>
+        ${goalReportHTML(goals(p))}
         <div class="card cal parent-cal" data-cal></div>
         <div class="card">
           <h3>最近14日の学習時間 <small>（緑＝クリア、線＝目標${p.studyMin}分）</small></h3>

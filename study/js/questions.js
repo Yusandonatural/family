@@ -848,6 +848,21 @@ window.Questions = (function () {
     8: { en: [[E.jaToWord, 3], [E.wordToJa, 2], [E.spell, 3], [E.qa, 3], [E.sentence, 3], [E.past, 3], [E.wordOrder, 2], [E.country, 2], [E.months, 1], [E.ordinals, 1]], math: [[M.fracMulDiv, 4], [M.ratio, 3], [M.speed, 3], [M.circle, 2], [M.proportion, 2], [M.percent, 1]] },
   };
 
+  // 算数の 単元名（保護者の「算数の目標」で えらぶ）
+  const MATH_NAMES = {
+    count: 'かずを かぞえる', more: 'おおい・すくない', next: 'かずの じゅんばん', bigger: 'おおきい かず',
+    addPic: 'たしざん（え）', subPic: 'ひきざん（え）', add20: '20までの たしざん', sub20: '20までの ひきざん',
+    clockJa: 'とけい', add2d: '2けたの たしざん', sub2d: '2けたの ひきざん', kuku: '九九',
+    placeValue: '大きい かず', length: 'ながさ', div: 'わりざん', mul2x1: 'かけざん（2けた×1けた）',
+    add3d: '3けたの たしざん・ひきざん', time: 'じかん', div2: 'わりざん（2・3けた÷1けた）',
+    mul2x2: 'かけざん（2けた×2けた）', areaRect: '長方形・正方形の めんせき', decAdd: '小数の たしざん・ひきざん',
+    round: 'がい数', fracSame: '分数（おなじ分母）', decMul: '小数の かけざん・わりざん', percent: '割合・百分率',
+    avg: '平均', triangle: '三角形・平行四辺形の めんせき', fracAdd: '分数の たしざん（通分）', volume: '体積',
+    fracMulDiv: '分数の かけざん・わりざん', ratio: '比', speed: '速さ', circle: '円の 円周・めんせき', proportion: '比例',
+  };
+  const nameOf = (fn) => { for (const k in M) if (M[k] === fn) return MATH_NAMES[k] || k; return ''; };
+  const mathUnits = (g) => (PLAN[g] || PLAN[0]).math.map(([fn]) => nameOf(fn));
+
   function weightedPick(list, avoid) {
     const cand = list.filter(([f]) => f !== avoid);
     const src = cand.length ? cand : list;
@@ -857,6 +872,143 @@ window.Questions = (function () {
     return src[src.length - 1][0];
   }
 
+  // =========================================================
+  //  えいかいわロード の もんだい
+  // =========================================================
+  const STEPS = window.CONV_STEPS || [];
+  // ステップの「ユニット」：ひょうげん（i）と やりとり（t）
+  function unitsOf(si) {
+    const st = STEPS[si];
+    return st.items.map((x, i) => ({ ...x, key: `${st.id}:i${i}`, kind: 'i', si }))
+      .concat(st.talk.map((x, i) => ({ ...x, en: x.a, ja: x.aja, key: `${st.id}:t${i}`, kind: 't', si })));
+  }
+  const convTotal = (si) => STEPS[si].items.length + STEPS[si].talk.length;
+  const words = (s) => s.split(' ');
+  const clean = (w) => w.replace(/[.,!?]/g, '');
+  const sayMini = (text) => ({ text, lang: 'en' });
+  const norm = (t) => String(t).toLowerCase().replace(/[！!。、.,?？\s]/g, '');
+  // はい／いいえ・OK 系の こたえは、ほかの はい／いいえ 系と いっしょに ださない（どちらも せいかいに なるため）
+  const ynGroup = (a) => /^(yes|no|ok|sure)\b/i.test(a);
+  const differ = (u) => (x) => norm(x.en) !== norm(u.en) && norm(x.ja) !== norm(u.ja);
+
+  const C = {};
+  // きいて えを えらぶ（字が よめなくても OK）
+  C.pic = (u, g, all) => {
+    const pool = all.filter((x) => x.kind === 'i' && x.e && (x === u || differ(u)(x)));
+    if (!u.e || pool.length < 3) return null;
+    const ch = withDistractors(u, pool, Math.min(nChoices(g), pool.length), (x) => x.e);
+    return {
+      kind: 'かいわ・ききとり', prompt: 'えいごを きいて、えを えらぼう', listen: true, say: [en(u.en)],
+      choices: ch.map((x) => ({ html: `<span class="emoji">${x.e}</span>`, value: x.key })),
+      answer: u.key, reveal: [en(u.en)], explain: `${u.e} <b>${esc(u.en)}</b><br>${esc(u.ja)}`,
+    };
+  };
+  // えいごの いみ
+  C.meaning = (u, g, all, older) => {
+    const ch = withDistractors(u, all.concat(older).filter(differ(u)), 4, (x) => norm(x.ja));
+    return {
+      kind: 'かいわ・いみ', prompt: `<span class="en">${esc(u.en)}</span><br>の いみは？`, say: [en(u.en)],
+      choices: ch.map((x) => ({ html: `<span class="sm">${esc(x.ja)}</span>`, value: x.key })),
+      answer: u.key, explain: `<b>${esc(u.en)}</b><br>${esc(u.ja)}`,
+    };
+  };
+  // にほんご → えいご
+  C.jaToEn = (u, g, all, older) => {
+    const ch = withDistractors(u, all.concat(older).filter(differ(u)), 4, (x) => norm(x.en));
+    return {
+      kind: 'かいわ・えいごで いうと', prompt: `「${esc(u.ja)}」<br>を えいごで いうと？`,
+      choices: ch.map((x) => ({ html: `<span class="en sm">${esc(x.en)}</span>`, value: x.key, say: sayMini(x.en) })),
+      answer: u.key, reveal: [en(u.en)], explain: `${esc(u.ja)}<br><b>${esc(u.en)}</b>`,
+    };
+  };
+  // しつもんに こたえる（やりとり）
+  C.reply = (u, g, all, older) => {
+    if (u.kind !== 't') return null;
+    // まちがいの せんたくしは、ほかの しつもんへの こたえ から
+    const pool = all.concat(older).filter((x) => x.kind === 't' && differ(u)(x) && norm(x.en) !== norm(u.q) && !(ynGroup(u.en) && ynGroup(x.en)));
+    const young = g <= 2;
+    const ch = withDistractors(u, young ? pool.filter((x) => x.e && x.e !== u.e) : pool, young ? 3 : 4, (x) => (young ? x.e : x.en));
+    return {
+      kind: 'かいわ・こたえる',
+      prompt: young ? 'しつもんを きいて、こたえを えらぼう' : `<span class="en">${esc(u.q)}</span><br><small>（${esc(u.qja)}）</small><br>こたえは どれ？`,
+      listen: young, say: [en(u.q)],
+      choices: ch.map((x) => ({
+        html: young ? `<span class="emoji">${x.e}</span><span class="en xs">${esc(x.en)}</span>` : `<span class="en sm">${esc(x.en)}</span>`,
+        value: x.key, say: sayMini(x.en),
+      })),
+      answer: u.key, reveal: [en(u.en)],
+      explain: `<b>${esc(u.q)}</b>（${esc(u.qja)}）<br>→ <b>${esc(u.en)}</b>（${esc(u.ja)}）`,
+    };
+  };
+  // あなうめ
+  C.fill = (u, g, all, older) => {
+    if (!u.b) return null;
+    const ws = words(u.en);
+    const idx = ws.findIndex((w) => clean(w) === u.b);
+    if (idx < 0) return null;
+    const bank = STEPS.flatMap((st) => st.items.map((x) => x.b).filter(Boolean));
+    const ch = withDistractors(u.b, bank.filter((b) => b.toLowerCase() !== u.b.toLowerCase()), 4, (b) => b.toLowerCase());
+    const shown = ws.map((w, i) => (i === idx ? w.replace(u.b, '<span class="blank">＿＿</span>') : esc(w))).join(' ');
+    return {
+      kind: 'かいわ・あなうめ', prompt: `<span class="en">${shown}</span><br><small>（${esc(u.ja)}）</small>`,
+      choices: ch.map((b) => ({ html: `<span class="en">${esc(b)}</span>`, value: b })),
+      answer: u.b, conv: u.key, reveal: [en(u.en)], explain: `<b>${esc(u.en)}</b><br>${esc(u.ja)}`,
+    };
+  };
+  // ならびかえ
+  C.order = (u) => {
+    const ws = words(u.en.replace(/[.!?]$/, ''));
+    if (ws.length < 3) return null;
+    const mark = /[.!?]$/.test(u.en) ? u.en.slice(-1) : '';
+    const low = (w, i) => (i === 0 && w !== 'I' && !/^I'/.test(w) ? w[0].toLowerCase() + w.slice(1) : w);
+    const toks = ws.map(low);
+    const build = (a) => { const b = a.slice(); b[0] = b[0][0].toUpperCase() + b[0].slice(1); return b.join(' ') + mark; };
+    const wrong = new Set();
+    for (let k = 0; k < 60 && wrong.size < 3; k++) { const c = build(shuffle(toks)); if (c !== u.en) wrong.add(c); }
+    if (wrong.size < 2) return null;
+    const ch = shuffle([u.en, ...wrong]);
+    return {
+      kind: 'かいわ・ならびかえ', prompt: `「${esc(u.ja)}」<br>ただしい えいごは どれ？`,
+      choices: ch.map((x) => ({ html: `<span class="en sm">${esc(x)}</span>`, value: x })),
+      answer: u.en, conv: u.key, reveal: [en(u.en)], explain: `<b>${esc(u.en)}</b>`,
+    };
+  };
+  // こえに だして いう
+  C.speak = (u, g) => ({
+    kind: 'かいわ・いってみよう', type: 'speak',
+    prompt: `<span class="en big-en">${esc(u.en)}</span><br><small>${esc(u.ja)}</small>`,
+    visual: g <= 2 && u.e ? `<div class="emoji">${u.e}</div>` : '',
+    say: [en(u.en)], speakText: u.en, answer: u.key, explain: `<b>${esc(u.en)}</b>`,
+  });
+
+  const CONV_MIX = (g) => (g <= 2 ? [['pic', 35], ['reply', 30], ['speak', 35]]
+    : g === 3 ? [['pic', 20], ['meaning', 20], ['reply', 30], ['speak', 30]]
+    : [['meaning', 18], ['jaToEn', 15], ['reply', 25], ['fill', 12], ['speak', 20]].concat(g >= 6 ? [['order', 10]] : []));
+
+  // si: ステップ番号、mastery: {key: 正解回数}、reviewTo: ふくしゅうに つかう ステップ（それより前）
+  function nextConv({ g, si, mastery = {}, seenAt }) {
+    if (!STEPS[si]) return null;
+    const all = unitsOf(si);
+    const older = [];
+    for (let k = 0; k < si; k++) older.push(...unitsOf(k));
+    const mix = CONV_MIX(g);
+    for (let tries = 0; tries < 40; tries++) {
+      let r = Math.random() * mix.reduce((a, [, w]) => a + w, 0), type = mix[0][0];
+      for (const [t, w] of mix) { if ((r -= w) < 0) { type = t; break; } }
+      // まだ おぼえていない ユニットを おおめに
+      const ws = all.map((u) => ((mastery[u.key] || 0) < 2 ? 4 : 1));
+      let rr = Math.random() * ws.reduce((a, b) => a + b, 0), u = all[0];
+      for (let i = 0; i < all.length; i++) { if ((rr -= ws[i]) < 0) { u = all[i]; break; } }
+      const q = C[type](u, g, all, older);
+      if (!q) continue;
+      q.subj = 'en'; q.type = q.type || 'choice'; q.conv = q.conv || u.key; q.step = si;
+      q.key = keyOf(q) + '|' + u.key;
+      if (seenAt && seenAt(q.key)) continue;
+      return q;
+    }
+    return null;
+  }
+
   // 「同じ問題」の見分け：種類・答え・問題文・絵が同じなら同じ問題
   const plain = (h) => String(h || '').replace(/<[^>]+>/g, '').replace(/\s+/g, '');
   const keyOf = (q) => [q.kind, q.answer, plain(q.prompt), plain(q.visual), q.sig || ''].join('|');
@@ -864,18 +1016,20 @@ window.Questions = (function () {
   let lastGen = null;
   // enRatio: えいごの わりあい（0〜1）
   // seenAt(key): 最近出した時刻（ms）。まだ出していなければ 0
-  function next({ g, lvEn, lvMath, enRatio, seenAt }) {
+  function next({ g, lvEn, lvMath, enRatio, seenAt, mathFocus = -1 }) {
     const plan = PLAN[g] || PLAN[0];
     let best = null, bestAt = Infinity, bestGen = null;
     const firstEn = Math.random() < enRatio;
     for (let tries = 0; tries < 80; tries++) {
       // はじめの 50回は えらんだ 教科の中で さがす（えいごの わりあいを たもつ）
       const useEn = tries < 50 ? firstEn : Math.random() < enRatio;
-      const gen = weightedPick(useEn ? plan.en : plan.math, lastGen);
+      const focus = !useEn && mathFocus >= 0 && plan.math[mathFocus] && Math.random() < 0.6;
+      const gen = focus ? plan.math[mathFocus][0] : weightedPick(useEn ? plan.en : plan.math, lastGen);
       let q;
       try { q = gen({ g, lv: useEn ? lvEn : lvMath }); } catch (e) { console.warn(e); continue; }
       q.type = q.type || 'choice';
       q.key = keyOf(q);
+      if (!useEn) q.unit = plan.math.findIndex(([f]) => f === gen);
       const at = seenAt ? seenAt(q.key) : 0;
       if (!at) { lastGen = gen; return q; }
       // ぜんぶ 最近 出た問題なら、いちばん 前に 出たものを つかう
@@ -886,5 +1040,5 @@ window.Questions = (function () {
     return q;
   }
 
-  return { next, keyOf, PLAN, _E: E, _M: M };
+  return { next, nextConv, unitsOf, convTotal, mathUnits, keyOf, PLAN, _E: E, _M: M, _C: C };
 })();
