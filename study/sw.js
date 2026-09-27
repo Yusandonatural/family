@@ -1,7 +1,7 @@
 /* オフラインでも使えるように アプリ本体を キャッシュ（更新時は VERSION を上げる） */
-const VERSION = 'study-v6';
+const VERSION = 'study-v7';
 const ASSETS = [
-  './', 'index.html', 'css/style.css', 'js/data.js', 'js/questions.js', 'js/app.js',
+  './', 'index.html', 'css/style.css', 'js/data.js', 'js/conversation.js', 'js/questions.js', 'js/app.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
 ];
 self.addEventListener('install', (e) => {

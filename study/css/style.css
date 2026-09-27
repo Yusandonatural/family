@@ -516,3 +516,86 @@ hr { border: 0; border-top: 1px dashed var(--line); margin: 12px 0; }
 .steps ol { padding-left: 1.3em; margin: 8px 0; }
 .steps li { margin-bottom: 6px; }
 @media (min-width: 740px) { .dev-note { font-size: 1rem; } }
+
+/* =========================================================
+   目標・えいかいわロード
+   ========================================================= */
+.goal-head { display: flex; align-items: center; justify-content: space-between; }
+.goal-head h2 { margin: 0; }
+.goal-head .link { padding: 4px; font-weight: 800; color: var(--en); text-decoration: none; }
+.goal-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px 4px; border-top: 1px dashed var(--line); }
+.goal-row:first-of-type { border-top: 0; }
+.goal-ico { font-size: 2.2rem; width: 52px; height: 52px; display: grid; place-items: center; background: #eaf2ff; border-radius: 16px; flex: none; }
+.goal-txt { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.goal-txt b { font-size: 1.05rem; }
+.gbar { display: block; height: 10px; border-radius: 99px; background: #eaf2ff; overflow: hidden; }
+.gbar span { display: block; height: 100%; background: var(--en); border-radius: 99px; transition: width .5s; }
+.gbar.math { background: #e3f6ec; }
+.gbar.math span { background: var(--math); }
+.goal-card .ov-emoji { font-size: 3.6rem; animation: pop .5s; }
+.goal-next { font-weight: 800; color: var(--en); }
+
+.road-goal { display: flex; gap: 14px; align-items: center; background: linear-gradient(135deg, #eaf2ff, #fff); }
+.road-flag { font-size: 3rem; }
+
+.road-goal p { margin: 6px 0 0; font-size: .9rem; }
+.road-list { list-style: none; margin: 0; padding: 0 0 0 10px; position: relative; display: flex; flex-direction: column; gap: 10px; }
+.road-list::before { content: ''; position: absolute; left: 36px; top: 20px; bottom: 20px; border-left: 4px dotted #c6dafc; }
+.road-btn { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: var(--card); border-radius: 18px; padding: 10px 14px; box-shadow: var(--shadow); position: relative; }
+.road-btn:disabled { opacity: .55; }
+.road-dot { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 1.7rem; background: #f6efe4; flex: none; }
+.road-step.done .road-dot { background: #dcf7e9; }
+.road-step.now .road-btn { box-shadow: 0 0 0 3px var(--en), var(--shadow); }
+.road-step.now .road-dot { background: #eaf2ff; animation: pulse 1.6s infinite; }
+.road-step.target .road-btn::after { content: '🚩'; position: absolute; right: 12px; top: 8px; font-size: 1.3rem; }
+.road-txt { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+
+.step-head { display: flex; gap: 14px; align-items: center; }
+.step-ico { font-size: 3rem; }
+.step-head b { font-size: 1.25rem; }
+.step-head p { margin: 4px 0 0; font-size: .9rem; color: var(--sub); }
+.phrases { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.phrase { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.phrase:last-child { border-bottom: 0; }
+.say-btn2 { width: 44px; height: 44px; border-radius: 50%; background: #eaf2ff; font-size: 1.3rem; flex: none; }
+.ph-e { font-size: 1.8rem; width: 2.2em; text-align: center; flex: none; }
+.ph-txt { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.ph-txt .q { color: var(--sub); }
+.ph-m { color: var(--gold); letter-spacing: 1px; flex: none; }
+.en.xs { font-size: .8rem; }
+.choice .en.xs { display: block; margin-top: 4px; color: var(--sub); }
+
+/* せんたくしの 🔊 */
+.choice { position: relative; }
+.say-mini { position: absolute; top: 6px; right: 6px; width: 34px; height: 34px; border-radius: 50%; background: #eaf2ff; display: grid; place-items: center; font-size: 1rem; }
+
+/* こえに だして いう */
+.speak-box { display: flex; flex-direction: column; align-items: center; gap: 12px; background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.speak-box .mic { max-width: 420px; }
+.heard { margin: 0; text-align: center; color: var(--sub); min-height: 1.6em; }
+.speak-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.goal-set { min-width: 0; max-width: 100%; border: 2px dashed #c6dafc; border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+.goal-set legend { padding: 0 6px; }
+.cleared-list { margin: 6px 0; padding-left: 1.2em; font-size: .9rem; }
+@media (min-width: 740px) {
+  .goal-ico { width: 64px; height: 64px; font-size: 2.6rem; }
+  .goal-txt b { font-size: 1.25rem; }
+  .road-btn { padding: 14px 18px; }
+  .road-dot { width: 64px; height: 64px; font-size: 2rem; }
+  .road-list::before { left: 42px; }
+  .road-txt b { font-size: 1.2rem; }
+  .ph-txt b { font-size: 1.2rem; }
+  .say-mini { width: 42px; height: 42px; font-size: 1.2rem; }
+  .speak-box .mic { font-size: 1.5rem; }
+}
+.goal-set select, .goal-set input { width: 100%; max-width: 100%; min-width: 0; }
+.form select, .form input { max-width: 100%; }
+.rg-title { display: block; font-size: 1.3rem; }
+.road-goal p b { font-size: inherit; display: inline; }
+@media (min-width: 740px) {
+  .dash-main { grid-template-areas: 'today game' 'today stats' 'goal goal'; }
+  .dash-main .goal { grid-area: goal; }
+}
+@media (min-width: 1000px) and (orientation: landscape) {
+  .dash-main { grid-template-areas: none; }
+}
