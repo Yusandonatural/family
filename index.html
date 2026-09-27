@@ -115,6 +115,10 @@ input[type=text],input[type=number]{border:1px solid var(--line);background:var(
 .btn{border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:8px 16px;font-weight:700;min-height:40px}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .btn.danger{background:transparent;color:var(--danger);border:1px solid var(--line)}
+.sync{margin:0;font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.sync.on::before{background:var(--accent)}
+.sync.err{color:var(--danger)} .sync.err::before{background:var(--danger)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
 /* 日付ダイアログ */
@@ -154,6 +158,8 @@ input[type=text],input[type=number]{border:1px solid var(--line);background:var(
     </div>
   </header>
 
+  <p class="sync" id="syncNote" role="status">この端末に保存しています</p>
+
   <div class="tabs" id="tabs" role="group" aria-label="表示する子ども"></div>
 
   <div class="summary" id="summary"></div>
@@ -192,12 +198,13 @@ input[type=text],input[type=number]{border:1px solid var(--line);background:var(
 
   <section class="panel">
     <h2>バックアップ</h2>
-    <p class="hint">記録はこの端末のブラウザに保存されます。機種変更の前などにファイルへ書き出しておくと安心です。</p>
+    <p class="hint" id="backupHint">記録をファイルに書き出しておくと、万一のときに読み込んで元に戻せます。</p>
     <div class="row">
-      <button class="btn ghost" id="exportBtn">ファイルに書き出す</button>
+      <button class="btn ghost" id="exportBtn" type="button">ファイルに書き出す</button>
       <label class="btn ghost" for="importFile">ファイルから読み込む</label>
-      <input type="file" id="importFile" accept="application/json" hidden>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
     </div>
+    <p class="hint" id="backupMsg" role="status"></p>
   </section>
 </div>
 
@@ -215,21 +222,66 @@ input[type=text],input[type=number]{border:1px solid var(--line);background:var(
 const KEY = "otetsudai-kozukai-v1";
 const KID_COLORS = 6;
 const uid = () => Math.random().toString(36).slice(2, 9);
+const clone = (o) => JSON.parse(JSON.stringify(o));
 
+// 最初から入っている項目は、どのスマホでも同じ id になるよう固定する
 function defaults() {
   const chores = [
     ["お風呂洗い", 10], ["お洗濯たたみ", 20], ["掃除機", 10], ["布団敷き", 20],
     ["食器洗い", 20], ["靴並べ", 10], ["玄関はき", 10], ["食器並べ", 10],
-  ].map(([name, price]) => ({ id: uid(), name, price }));
+  ].map(([name, price], i) => ({ id: "c" + (i + 1), name, price }));
   const kids = ["こうたろう", "かこ", "そうじろう", "みちさぶろう"]
-    .map((name, i) => ({ id: uid(), name, color: i }));
+    .map((name, i) => ({ id: "k" + (i + 1), name, color: i }));
   return { chores, kids, records: {} };
 }
 
 // records[YYYY-MM-DD][kidId][choreId] = { n: 名前, p: 記録時の金額 }
+// 共有モードでは表示中の月の分だけを持つ。
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || defaults(); } catch { state = defaults(); }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+
+// ---- 保存先：共有データベース（使えるとき）か、この端末 ----
+let db = null;
+let unsubMonth = null;
+const chains = {};
+function saveLocal() { if (!db) try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+function queue(key, fn) {
+  const run = (chains[key] || Promise.resolve()).then(fn).catch(onWriteError);
+  chains[key] = run;
+  return run;
+}
+function onWriteError(e) {
+  setSync("err", e && e.code === "invalid_argument"
+    ? "保存できませんでした。持ち主に共有設定で「Contributor」以上にしてもらってください。"
+    : "保存できませんでした。電波の良いところでもう一度ためしてください。");
+}
+function persistConfig() {
+  if (!db) return saveLocal();
+  const body = clone({ chores: state.chores, kids: state.kids });
+  queue("config", () => db.doc("app/config").set(body));
+}
+function persistDay(date) {
+  if (!db) return saveLocal();
+  const r = state.records[date] ? clone(state.records[date]) : null;
+  const ref = db.doc("days/" + date);
+  queue("d" + date, () => (r ? ref.set({ m: date.slice(0, 7), r }) : ref.delete()));
+}
+function setSync(kind, text) {
+  const el = $("syncNote");
+  el.className = "sync" + (kind ? " " + kind : "");
+  el.textContent = text;
+}
+function subscribeMonth() {
+  if (!db) return;
+  if (unsubMonth) unsubMonth();
+  const m = `${view.y}-${pad(view.m + 1)}`;
+  unsubMonth = db.collection("days").where("m", "==", m).onSnapshot((snap) => {
+    const rec = {};
+    snap.docs.forEach((d) => { rec[d.id] = clone(d.data().r || {}); });
+    state.records = rec;
+    render();
+  }, () => setSync("err", "共有データを読み込めませんでした。ページを開き直してください。"));
+}
 
 const now = new Date();
 let view = { y: now.getFullYear(), m: now.getMonth(), kid: "all" };
@@ -285,7 +337,7 @@ function renderCalendar() {
     const date = ymd(view.y, view.m, d);
     const dow = i % 7;
     const cls = ["day", dow === 0 && "sun", dow === 6 && "sat", date === todayStr && "today"].filter(Boolean).join(" ");
-    let body = "", label = `${view.m + 1}月${d}日`;
+    let body = "";
     if (view.kid === "all") {
       const chips = state.kids.map((k) => {
         const s = daySum(date, k.id);
@@ -298,14 +350,13 @@ function renderCalendar() {
       body = `<div class="marks" data-n="${e.length ? e.length + "こ" : ""}">${e.map((x) => `<span class="mark">${esc(x.n)}</span>`).join("")}</div>` +
         (s ? `<span class="daytotal num">${s}円</span>` : "");
     }
-    html += `<button class="${cls}" data-date="${date}" aria-label="${label}"><span class="d num">${d}</span>${body}</button>`;
+    html += `<button class="${cls}" data-date="${date}" aria-label="${view.m + 1}月${d}日"><span class="d num">${d}</span>${body}</button>`;
   }
   $("grid").innerHTML = html;
 }
 
 function renderDetail() {
   const dates = monthDates();
-  // 金額が変わったおてつだいも名前ごとにまとめる
   const rows = new Map();
   const kidTotals = state.kids.map(() => 0);
   dates.forEach((date) => state.kids.forEach((k, ki) => {
@@ -323,7 +374,11 @@ function renderDetail() {
   $("detail").innerHTML = head + `<tbody>${body}</tbody>` + foot;
 }
 
+// 入力中に他のスマホの変更が届いても、打っている欄を消さない
+const editing = (id) => $(id).contains(document.activeElement) && document.activeElement.tagName === "INPUT";
+
 function renderChores() {
+  if (editing("choreList")) return;
   $("choreList").innerHTML = state.chores.map((c) => `
     <div class="chore" data-id="${c.id}">
       <input type="text" id="cn-${c.id}" value="${esc(c.name)}" data-f="name" aria-label="おてつだいの名前">
@@ -333,6 +388,7 @@ function renderChores() {
 }
 
 function renderKids() {
+  if (editing("kidList")) return;
   $("kidList").innerHTML = state.kids.map((k) => `
     <div class="chore" data-id="${k.id}">
       <span class="tab" style="--kc:${kidColor(k)};padding:4px 8px" aria-hidden="true"><span class="dot"></span></span>
@@ -341,7 +397,10 @@ function renderKids() {
     </div>`).join("");
 }
 
-function render() { renderTabs(); renderSummary(); renderCalendar(); renderDetail(); renderChores(); renderKids(); }
+function render() {
+  renderTabs(); renderSummary(); renderCalendar(); renderDetail(); renderChores(); renderKids();
+  if (openDate) renderSheet();
+}
 
 // ---- 日付を押したとき ----
 let openDate = null;
@@ -371,23 +430,30 @@ function closeSheet() { $("sheet").hidden = true; openDate = null; }
 $("sheetBody").addEventListener("click", (e) => {
   const b = e.target.closest(".opt"); if (!b) return;
   const { kid, chore } = b.dataset;
-  const day = (state.records[openDate] ||= {});
+  const date = openDate;
+  const day = (state.records[date] ||= {});
   const rec = (day[kid] ||= {});
   if (rec[chore]) delete rec[chore];
   else { const c = state.chores.find((x) => x.id === chore); rec[chore] = { n: c.name, p: c.price }; }
   if (!Object.keys(rec).length) delete day[kid];
-  if (!Object.keys(day).length) delete state.records[openDate];
-  save(); renderSheet(); renderSummary(); renderCalendar(); renderDetail();
+  if (!Object.keys(day).length) delete state.records[date];
+  persistDay(date);
+  render();
 });
 $("sheetClose").onclick = closeSheet;
 $("sheet").addEventListener("click", (e) => { if (e.target === $("sheet")) closeSheet(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
 
 // ---- ナビゲーション ----
-function shift(n) { const d = new Date(view.y, view.m + n, 1); view.y = d.getFullYear(); view.m = d.getMonth(); render(); }
+function goMonth(y, m) {
+  view.y = y; view.m = m;
+  if (db) state.records = {};
+  render(); subscribeMonth();
+}
+function shift(n) { const d = new Date(view.y, view.m + n, 1); goMonth(d.getFullYear(), d.getMonth()); }
 $("prev").onclick = () => shift(-1);
 $("next").onclick = () => shift(1);
-$("thisMonth").onclick = () => { view.y = now.getFullYear(); view.m = now.getMonth(); render(); };
+$("thisMonth").onclick = () => goMonth(now.getFullYear(), now.getMonth());
 $("tabs").addEventListener("click", (e) => { const b = e.target.closest(".tab"); if (b) { view.kid = b.dataset.kid; render(); } });
 $("grid").addEventListener("click", (e) => { const b = e.target.closest(".day[data-date]"); if (b) openSheet(b.dataset.date); });
 
@@ -397,30 +463,30 @@ $("choreList").addEventListener("change", (e) => {
   const row = e.target.closest(".chore"); const c = state.chores.find((x) => x.id === row.dataset.id);
   if (e.target.dataset.f === "name") c.name = e.target.value.trim() || c.name;
   else c.price = Math.max(0, parseInt(e.target.value, 10) || 0);
-  save(); render();
+  e.target.blur(); persistConfig(); render();
 });
 $("choreList").addEventListener("click", (e) => {
   const id = e.target.dataset.del; if (!id) return;
   if (pendingDelete !== id) { pendingDelete = id; renderChores(); return; }
-  state.chores = state.chores.filter((c) => c.id !== id); pendingDelete = null; save(); render();
+  state.chores = state.chores.filter((c) => c.id !== id); pendingDelete = null; persistConfig(); render();
 });
 $("addChore").addEventListener("submit", (e) => {
   e.preventDefault();
   const name = $("newChoreName").value.trim(); if (!name) return;
   state.chores.push({ id: uid(), name, price: Math.max(0, parseInt($("newChorePrice").value, 10) || 0) });
-  $("newChoreName").value = ""; save(); render();
+  $("newChoreName").value = ""; persistConfig(); render();
 });
 $("kidList").addEventListener("change", (e) => {
   const k = state.kids.find((x) => x.id === e.target.closest(".chore").dataset.id);
-  k.name = e.target.value.trim() || k.name; save(); render();
+  k.name = e.target.value.trim() || k.name; e.target.blur(); persistConfig(); render();
 });
 $("kidList").addEventListener("click", (e) => {
   const id = e.target.dataset.delkid; if (!id) return;
   if (pendingDelete !== id) { pendingDelete = id; renderKids(); return; }
   state.kids = state.kids.filter((k) => k.id !== id);
-  Object.values(state.records).forEach((day) => delete day[id]);
+  if (!db) Object.values(state.records).forEach((day) => delete day[id]);
   if (view.kid === id) view.kid = "all";
-  pendingDelete = null; save(); render();
+  pendingDelete = null; persistConfig(); render();
 });
 $("addKid").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -428,28 +494,72 @@ $("addKid").addEventListener("submit", (e) => {
   const used = new Set(state.kids.map((k) => k.color));
   let color = 0; while (used.has(color) && color < KID_COLORS) color++;
   state.kids.push({ id: uid(), name, color: color % KID_COLORS });
-  $("newKidName").value = ""; save(); render();
+  $("newKidName").value = ""; persistConfig(); render();
 });
 
 // ---- バックアップ ----
-$("exportBtn").onclick = () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+const backupMsg = (t) => { $("backupMsg").textContent = t; };
+$("exportBtn").onclick = async () => {
+  const out = { chores: state.chores, kids: state.kids, records: state.records };
+  if (db) {
+    try {
+      const snap = await db.collection("days").get();
+      out.records = {};
+      snap.docs.forEach((d) => { out.records[d.id] = d.data().r || {}; });
+    } catch { backupMsg("記録を読み込めませんでした。もう一度ためしてください。"); return; }
+  }
+  const text = JSON.stringify(out, null, 2);
+  const filename = `kozukai-${ymd(now.getFullYear(), now.getMonth(), now.getDate())}.json`;
+  const dl = window.claude?.use ? await window.claude.use("downloads") : null;
+  if (dl) {
+    try { await dl.save({ filename, data: text }); backupMsg("書き出しました。"); }
+    catch (err) { backupMsg(err && err.code === "declined" ? "書き出しをやめました。" : "書き出せませんでした。"); }
+    return;
+  }
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `kozukai-${new Date().toISOString().slice(0, 10)}.json`;
+  a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  a.download = filename;
   a.click(); URL.revokeObjectURL(a.href);
 };
 $("importFile").addEventListener("change", async (e) => {
-  const f = e.target.files[0]; if (!f) return;
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  let data;
   try {
-    const data = JSON.parse(await f.text());
+    data = JSON.parse(await f.text());
     if (!Array.isArray(data.chores) || !Array.isArray(data.kids) || typeof data.records !== "object") throw 0;
-    state = data; save(); view.kid = "all"; render();
-  } catch { $("importFile").value = ""; alert("読み込めませんでした。書き出したファイルを選んでください。"); }
-  e.target.value = "";
+  } catch { backupMsg("読み込めませんでした。このアプリで書き出したファイルを選んでください。"); return; }
+  state.chores = data.chores; state.kids = data.kids; view.kid = "all";
+  if (db) {
+    persistConfig();
+    Object.entries(data.records).forEach(([date, r]) => { state.records[date] = r; persistDay(date); });
+    await Promise.all(Object.values(chains));
+    subscribeMonth();
+  } else {
+    state.records = data.records; saveLocal();
+  }
+  render(); backupMsg("読み込みました。");
 });
 
 render();
+
+// 共有データベースが使えるときは、家族のスマホで同じ記録を見る
+(async () => {
+  if (!window.claude?.use) return;
+  db = await window.claude.use("db");
+  if (!db) return;
+  setSync("on", "家族のスマホと共有しています");
+  $("backupHint").textContent = "記録は家族みんなで共有されています。念のためファイルにも書き出しておけます。";
+  state.records = {};
+  db.doc("app/config").onSnapshot((snap) => {
+    if (!snap.exists) return;
+    const d = snap.data();
+    state.chores = clone(d.chores || []);
+    state.kids = clone(d.kids || []);
+    if (view.kid !== "all" && !state.kids.some((k) => k.id === view.kid)) view.kid = "all";
+    render();
+  }, () => setSync("err", "共有データを読み込めませんでした。ページを開き直してください。"));
+  subscribeMonth();
+})();
 </script>
 </body>
 </html>
