@@ -58,7 +58,7 @@ window.Kozukai = (function () {
   }
   function persistConfig() {
     if (!db) return saveLocal();
-    const body = clone({ chores: state.chores, kids: state.kids });
+    const body = clone({ chores: state.chores, kids: state.kids, adults: state.adults || [] });
     queue('config', () => db.doc('app/config').set(body));
   }
   function persistDay(date) {
@@ -296,7 +296,7 @@ window.Kozukai = (function () {
     // バックアップ
     const msg = (t) => { $('kzBackupMsg').textContent = t; };
     $('kzExport').onclick = async () => {
-      const out = { chores: state.chores, kids: state.kids, records: state.records };
+      const out = { chores: state.chores, kids: state.kids, adults: state.adults || [], records: state.records };
       if (db) {
         try {
           const snap = await db.collection('days').get();
@@ -324,7 +324,7 @@ window.Kozukai = (function () {
         data = JSON.parse(await f.text());
         if (!Array.isArray(data.chores) || !Array.isArray(data.kids) || typeof data.records !== 'object') throw 0;
       } catch (err) { msg('読み込めませんでした。このアプリで 書き出した ファイルを えらんでください。'); return; }
-      state.chores = data.chores; state.kids = data.kids; view.kid = 'all';
+      state.chores = data.chores; state.kids = data.kids; state.adults = data.adults || []; view.kid = 'all';
       if (db) {
         persistConfig();
         Object.entries(data.records).forEach(([date, r]) => { state.records[date] = r; persistDay(date); });
@@ -350,6 +350,7 @@ window.Kozukai = (function () {
       const d = snap.data();
       state.chores = clone(d.chores || []);
       state.kids = clone(d.kids || []);
+      state.adults = clone(d.adults || []);
       if (view.kid !== 'all' && !state.kids.some((k) => k.id === view.kid)) view.kid = 'all';
       render();
     }, () => setSync('err', '共有データを 読み込めませんでした。ページを 開き直してください。'));
@@ -368,7 +369,23 @@ window.Kozukai = (function () {
 
   return {
     init, monthTotal, setKid,
-    kids: () => state.kids.map((k) => ({ id: k.id, name: k.name, color: kidColor(k), month: kidMonth(k.id) })),
+    kids: () => state.kids.map((k) => ({ id: k.id, name: k.name, birth: k.birth || '', color: kidColor(k), month: kidMonth(k.id) })),
+    // うらない 用：おとなは こづかい帳には 出さず、たんじょうびだけ 持つ
+    adults: () => (state.adults || []).map((a) => ({ id: a.id, name: a.name, birth: a.birth || '', color: 'var(--sub)' })),
+    setBirth(id, birth) {
+      const p = state.kids.find((k) => k.id === id) || (state.adults || []).find((a) => a.id === id);
+      if (!p) return;
+      p.birth = birth; persistConfig(); render();
+    },
+    addAdult(name, birth) {
+      state.adults = state.adults || [];
+      state.adults.push({ id: 'a' + uid(), name, birth });
+      persistConfig(); render();
+    },
+    removeAdult(id) {
+      state.adults = (state.adults || []).filter((a) => a.id !== id);
+      persistConfig(); render();
+    },
     month: () => view.m + 1,
   };
 })();
