@@ -13,14 +13,25 @@
 </head>
 <body>
 
-<!-- ホーム：アプリを えらぶ -->
+<!-- さいしょの 画面：だれが つかう？ -->
 <section class="screen home" id="famHome">
   <h1 class="logo">かぞくの<b>アプリ</b></h1>
-  <p class="lead">なにを する？</p>
+  <p class="lead">だれが つかう？</p>
+  <div class="who" id="famWho"></div>
+</section>
+
+<!-- えらんだ 人の メニュー -->
+<section class="screen" id="famMenu" hidden>
+  <header class="topbar">
+    <button class="icon-btn fam-back" aria-label="なまえを えらびなおす">←</button>
+    <span class="me" id="famMe"></span>
+    <span></span>
+  </header>
+  <p class="lead" id="famAsk">なにを する？</p>
   <div class="who fam-apps">
     <button class="who-btn" data-go="study">
       <span class="av">📚</span><span class="nm">まいにち30ぷん</span>
-      <span class="st">えいご と さんすう</span>
+      <span class="st" id="famStudySt">えいご と さんすう</span>
     </button>
     <button class="who-btn" data-go="kozukai">
       <span class="av">🪙</span><span class="nm">おてつだい</span>
@@ -31,14 +42,14 @@
 
 <!-- まいにち30ぷん から ホームへ もどる バー -->
 <div class="fam-bar" id="famBar" hidden>
-  <button class="link fam-home">← かぞくのアプリ</button>
+  <button class="link fam-menu">← メニューへ</button>
 </div>
 <main id="app" aria-live="polite" hidden></main>
 
 <!-- おてつだい こづかい帳 -->
 <section class="screen" id="kz" hidden>
   <header class="topbar">
-    <button class="icon-btn fam-home" aria-label="ホームへ もどる">←</button>
+    <button class="icon-btn fam-menu" aria-label="メニューへ もどる">←</button>
     <h2>🪙 おてつだい こづかい帳</h2>
     <span></span>
   </header>
@@ -100,43 +111,96 @@
 <script src="js/app.js"></script>
 <script src="js/kozukai.js"></script>
 <script>
-/* ホーム と 2つの アプリの きりかえ（#study / #kozukai） */
+/* さいしょに なまえを えらび、その人の メニューから 2つの アプリを ひらく
+   画面は #menu / #study / #kozukai で きりかえる（なにも ないときは なまえ えらび） */
 (function () {
   'use strict';
-  const home = document.getElementById('famHome');
-  const study = document.getElementById('app');
-  const bar = document.getElementById('famBar');
-  const kz = document.getElementById('kz');
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const yen = (n) => n.toLocaleString('ja-JP');
+  const PARENT = { id: 'all', name: 'おうちの人' };
+  const study = $('app');
+  const bar = $('famBar');
   // べんきょう中・ゲーム中・タイマーでは もどる バーを 出さない
   const BAR_SCREENS = ['home', 'dash', 'parent', 'report', 'pform'];
+  let who = null;
+
+  const avatar = (k, big) => {
+    if (k.id === 'all') return `<span class="av">👪</span>`;
+    const s = window.Study.find(k.name);
+    return s ? `<span class="av">${s.avatar}</span>`
+      : `<span class="av fam-init${big ? '' : ' sm'}" style="--kc:${k.color}">${esc(k.name.slice(0, 1))}</span>`;
+  };
+
+  function renderWho() {
+    const kids = window.Kozukai.kids();
+    $('famWho').innerHTML = kids.map((k) => {
+      const s = window.Study.find(k.name);
+      const st = s ? (s.cleared ? `✅ きょう レッスン ${s.lessons}かい` : `🔥 ${s.streak}にち れんぞく`) : `🪙 ${yen(k.month.sum)}円`;
+      return `<button class="who-btn" data-who="${k.id}">${avatar(k, true)}<span class="nm">${esc(k.name)}</span><span class="st">${st}</span></button>`;
+    }).join('') + `<button class="who-btn" data-who="all"><span class="av">👪</span><span class="nm">おうちの人</span><span class="st">みんなの きろく</span></button>`;
+  }
+
+  function renderMenu() {
+    if (!who) return;
+    const k = who.id === 'all' ? PARENT : window.Kozukai.kids().find((x) => x.id === who.id);
+    if (!k) { who = null; return; }
+    who = k;
+    $('famMe').innerHTML = `${avatar(k)}<span><b>${esc(k.name)}</b></span>`;
+    $('famAsk').textContent = k.id === 'all' ? 'どちらを ひらきますか？' : `${k.name}、なにを する？`;
+    const m = window.Kozukai.month();
+    if (k.id === 'all') {
+      $('famStudySt').textContent = 'きろく・せってい';
+      $('famKzSt').textContent = `${m}月 ごうけい ${yen(window.Kozukai.monthTotal().sum)}円`;
+    } else {
+      const s = window.Study.find(k.name);
+      $('famStudySt').textContent = !s ? 'はじめて つかう' : s.cleared ? `✅ きょう レッスン ${s.lessons}かい` : 'きょうの レッスン まだ';
+      $('famKzSt').textContent = `${m}月 ${yen(k.month.sum)}円`;
+    }
+  }
 
   function updateBar() {
     bar.hidden = study.hidden || !BAR_SCREENS.includes(study.dataset.screen);
   }
-  function updateTile() {
-    const t = window.Kozukai.monthTotal();
-    document.getElementById('famKzSt').textContent = `${window.Kozukai.month()}月 ごうけい ${t.sum.toLocaleString('ja-JP')}円`;
-  }
   function route() {
-    const r = location.hash.slice(1);
-    home.hidden = r === 'study' || r === 'kozukai';
+    let r = location.hash.slice(1);
+    if (r && !who) r = '';   // 読みこみ直した ときは なまえ えらびから
+    $('famHome').hidden = r !== '';
+    $('famMenu').hidden = r !== 'menu';
     study.hidden = r !== 'study';
-    kz.hidden = r !== 'kozukai';
+    $('kz').hidden = r !== 'kozukai';
+    if (r === '') renderWho();
+    if (r === 'menu') renderMenu();
     updateBar();
     window.scrollTo(0, 0);
   }
   function go(r) {
-    if (location.hash.slice(1) === r) return;
+    if (location.hash.slice(1) === r) return route();
     location.hash = r;
     route();
   }
 
-  home.addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
-  document.querySelectorAll('.fam-home').forEach((b) => b.addEventListener('click', () => go('')));
+  $('famWho').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-who]'); if (!b) return;
+    who = { id: b.dataset.who };
+    go('menu');
+  });
+  $('famMenu').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]'); if (!b) return;
+    if (b.dataset.go === 'study') {
+      if (who.id === 'all') window.Study.openHome(); else window.Study.open(who.name);
+    } else {
+      window.Kozukai.setKid(who.id);
+    }
+    go(b.dataset.go);
+  });
+  document.querySelectorAll('.fam-back').forEach((b) => b.addEventListener('click', () => { who = null; go(''); }));
+  document.querySelectorAll('.fam-menu').forEach((b) => b.addEventListener('click', () => go('menu')));
   window.addEventListener('hashchange', route);
   new MutationObserver(updateBar).observe(study, { attributes: true, attributeFilter: ['data-screen'] });
 
-  window.Kozukai.init({ onChange: updateTile });
+  // こづかい帳の なまえや 金額が かわったら（ほかの スマホからも）表示を なおす
+  window.Kozukai.init({ onChange: () => { if (!$('famHome').hidden) renderWho(); if (!$('famMenu').hidden) renderMenu(); } });
   route();
 })();
 </script>

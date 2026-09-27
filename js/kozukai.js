@@ -361,5 +361,14 @@ window.Kozukai = (function () {
     bind(); render(); connect();
   }
 
-  return { init, monthTotal, month: () => view.m + 1 };
+  function setKid(id) {
+    view.kid = id === 'all' || state.kids.some((k) => k.id === id) ? id : 'all';
+    goMonth(now.getFullYear(), now.getMonth());
+  }
+
+  return {
+    init, monthTotal, setKid,
+    kids: () => state.kids.map((k) => ({ id: k.id, name: k.name, color: kidColor(k), month: kidMonth(k.id) })),
+    month: () => view.m + 1,
+  };
 })();

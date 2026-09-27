@@ -995,9 +995,9 @@
     });
   }
 
-  function showProfileForm(id, first) {
+  function showProfileForm(id, first, presetName) {
     const p = id ? S.profiles.find((x) => x.id === id) : null;
-    const v = p || { name: '', grade: 3, avatar: AVATARS[S.profiles.length % AVATARS.length], studyMin: 30, gameMin: 30, enRatio: 0.7, maxLessons: 0 };
+    const v = p || { name: presetName || '', grade: 3, avatar: AVATARS[S.profiles.length % AVATARS.length], studyMin: 30, gameMin: 30, enRatio: 0.7, maxLessons: 0 };
     const opts = (arr, sel) => arr.map(([val, label]) => `<option value="${val}" ${String(val) === String(sel) ? 'selected' : ''}>${label}</option>`).join('');
     const mins = [10, 15, 20, 25, 30, 35, 40, 45, 50, 60].map((m) => [m, m + '分']);
     const d = p ? p.days[dkey()] : null;
@@ -1125,6 +1125,23 @@
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+
+  // ---------- かぞくのアプリ から よばれる 入口 ----------
+  window.Study = {
+    // なまえで プロフィールを さがす（なければ null）
+    find(name) {
+      const p = S.profiles.find((x) => x.name === name);
+      if (!p) return null;
+      const d = p.days[dkey()];
+      return { avatar: p.avatar, lessons: lessonsOf(d), cleared: !!(d && d.cleared), streak: streak(p) };
+    },
+    // その子の ホームを ひらく。まだ 登録が なければ なまえを いれた 登録画面を ひらく
+    open(name) {
+      const p = S.profiles.find((x) => x.name === name);
+      if (p) { S.current = p.id; save(); showDash(); } else showProfileForm(null, true, name);
+    },
+    openHome() { S.current = null; save(); showHome(); },
+  };
 
   // 起動
   if (S.current && cur()) showDash(); else showHome();
