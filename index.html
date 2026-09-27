@@ -3,562 +3,141 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>おてつだい こづかい帳</title>
+<title>かぞくのアプリ</title>
+<meta name="theme-color" content="#ffb938">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&family=Zen+Maru+Gothic:wght@500;700&display=swap">
-<style>
-:root{
-  color-scheme: light;
-  --bg:#EEF3F1;
-  --paper:#FFFFFF;
-  --ink:#1D2B2A;
-  --muted:#5E6F6C;
-  --line:#D5DEDB;
-  --soft:#E3EBE8;
-  --coin:#C98A12;
-  --coin-bg:#FFF3D6;
-  --accent:#23776B;
-  --accent-ink:#FFFFFF;
-  --sun:#C8432F;
-  --sat:#2F63B8;
-  --today:#23776B;
-  --danger:#B43A2A;
-  --k0:#D2553B; --k1:#C64F8E; --k2:#2F7FC1; --k3:#3E9A4A; --k4:#8A5CC2; --k5:#C98A12;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    color-scheme: dark;
-    --bg:#121A19; --paper:#1B2524; --ink:#E6EEEC; --muted:#9AAEAA; --line:#2E3C3A; --soft:#24302F;
-    --coin:#F0B73E; --coin-bg:#3A2F16; --accent:#4FB3A3; --accent-ink:#0E1716;
-    --sun:#F07A66; --sat:#7EA8F0; --today:#4FB3A3; --danger:#F07A66;
-    --k0:#F07A5E; --k1:#E67CB3; --k2:#63A9E8; --k3:#6CC378; --k4:#B08BE6; --k5:#F0B73E;
-  }
-}
-:root[data-theme="dark"]{
-  color-scheme: dark;
-  --bg:#121A19; --paper:#1B2524; --ink:#E6EEEC; --muted:#9AAEAA; --line:#2E3C3A; --soft:#24302F;
-  --coin:#F0B73E; --coin-bg:#3A2F16; --accent:#4FB3A3; --accent-ink:#0E1716;
-  --sun:#F07A66; --sat:#7EA8F0; --today:#4FB3A3; --danger:#F07A66;
-  --k0:#F07A5E; --k1:#E67CB3; --k2:#63A9E8; --k3:#6CC378; --k4:#B08BE6; --k5:#F0B73E;
-}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-html,body{margin:0}
-body{
-  background:var(--bg); color:var(--ink);
-  font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
-  font-size:15px; line-height:1.6;
-  padding-inline:16px; padding-block:16px 48px;
-}
-.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-h1,h2,h3{font-family:"M PLUS Rounded 1c","Zen Maru Gothic",system-ui,sans-serif;margin:0;text-wrap:balance}
-button,input,select{font:inherit;color:inherit}
-button{cursor:pointer}
-:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.num{font-variant-numeric:tabular-nums}
-
-header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
-header.top h1{font-size:1.5rem;font-weight:800;display:flex;align-items:center;gap:10px}
-.coin{display:inline-grid;place-items:center;width:1.6em;height:1.6em;border-radius:50%;background:var(--coin-bg);color:var(--coin);border:2px solid var(--coin);font-size:.75em;font-weight:800;flex:none}
-.monthnav{display:flex;align-items:center;gap:6px}
-.monthnav .label{font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:1.25rem;min-width:8.5em;text-align:center}
-.iconbtn{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:6px 12px;min-height:40px}
-.iconbtn:hover{background:var(--soft)}
-
-.tabs{display:flex;flex-wrap:wrap;gap:8px}
-.tab{border:2px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 14px;display:flex;align-items:center;gap:8px;font-weight:700}
-.tab .dot{width:12px;height:12px;border-radius:50%;background:var(--kc,var(--muted))}
-.tab[aria-pressed="true"]{border-color:var(--kc,var(--accent));background:var(--soft)}
-
-.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.sum{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;border-top:5px solid var(--kc)}
-.sum .who{font-weight:700;color:var(--muted);font-size:.9rem}
-.sum .yen{font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;font-size:1.6rem;line-height:1.2}
-.sum .yen small{font-size:.9rem;margin-left:2px}
-.sum .cnt{font-size:.85rem;color:var(--muted)}
-.sum.total{border-top-color:var(--coin);grid-column:1/-1}
-
-.cal{background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.dow,.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
-.dow div{text-align:center;font-weight:700;font-size:.85rem;padding:6px 0;background:var(--soft);color:var(--muted)}
-.dow div:first-child{color:var(--sun)} .dow div:last-child{color:var(--sat)}
-.day{border:0;border-top:1px solid var(--line);border-left:1px solid var(--line);background:transparent;text-align:left;padding:6px;min-height:86px;display:flex;flex-direction:column;gap:3px;min-width:0}
-.grid .day:nth-child(7n+1){border-left:0}
-.day:hover{background:var(--soft)}
-.day.out{background:var(--bg);opacity:.45;cursor:default}
-.day .d{font-weight:700;font-size:.9rem;width:1.8em;height:1.8em;display:grid;place-items:center;border-radius:50%}
-.day.sun .d{color:var(--sun)} .day.sat .d{color:var(--sat)}
-.day.today .d{background:var(--today);color:var(--accent-ink)}
-.chips{display:flex;flex-direction:column;gap:2px;min-width:0}
-.chip{font-size:.72rem;line-height:1.35;border-radius:6px;padding:1px 5px;background:color-mix(in srgb,var(--kc) 16%,transparent);color:var(--ink);border-left:3px solid var(--kc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chip b{font-weight:700}
-.marks{display:flex;flex-wrap:wrap;gap:3px}
-.mark{font-size:.7rem;padding:0 5px;border-radius:6px;background:var(--coin-bg);color:var(--ink);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-.daytotal{margin-top:auto;font-weight:800;color:var(--coin);font-size:.85rem}
-
-.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
-.panel h2{font-size:1.15rem}
-.panel .hint{color:var(--muted);font-size:.9rem;margin:0}
-.bd{overflow-x:auto}
-table{border-collapse:collapse;width:100%;min-width:420px}
-th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-th:first-child,td:first-child{text-align:left}
-thead th{font-size:.85rem;color:var(--muted)}
-tfoot td{font-weight:800}
-
-.chorelist{display:flex;flex-direction:column;gap:8px}
-.chore{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.chore input[type=text]{flex:1 1 140px;min-width:0}
-.chore input[type=number]{width:6.5em}
-input[type=text],input[type=number]{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 10px;min-height:40px}
-.btn{border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:8px 16px;font-weight:700;min-height:40px}
-.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--line)}
-.sync{margin:0;font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px}
-.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
-.sync.on::before{background:var(--accent)}
-.sync.err{color:var(--danger)} .sync.err::before{background:var(--danger)}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-
-/* 日付ダイアログ */
-.sheet{position:fixed;inset:0;background:rgb(0 0 0 / .35);display:flex;align-items:flex-end;justify-content:center;z-index:10}
-.sheet .box{background:var(--paper);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
-@media (min-width:640px){.sheet{align-items:center}.sheet .box{border-radius:18px}}
-.sheet h3{font-size:1.2rem}
-.kidblock{display:flex;flex-direction:column;gap:8px}
-.kidblock .kh{display:flex;justify-content:space-between;align-items:center;font-weight:700;border-left:5px solid var(--kc);padding-left:8px}
-.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
-.opt{border:2px solid var(--line);background:var(--bg);border-radius:12px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:2px;min-height:60px}
-.opt .p{color:var(--coin);font-weight:800;font-size:.9rem}
-.opt[aria-pressed="true"]{border-color:var(--kc);background:color-mix(in srgb,var(--kc) 18%,var(--paper))}
-.opt[aria-pressed="true"] .n::before{content:"✓ ";color:var(--kc);font-weight:800}
-.opt.gone{border-style:dashed}
-
-@media (max-width:560px){
-  .day{min-height:64px;padding:4px}
-  .chip{font-size:.62rem;padding:0 3px}
-  .chip .cn{display:none}
-  .mark{display:none}
-  .marks::after{content:attr(data-n);font-size:.7rem;color:var(--muted)}
-  header.top h1{font-size:1.25rem}
-}
-@media (prefers-reduced-motion:no-preference){.opt,.tab,.day{transition:background-color .15s,border-color .15s}}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/kozukai.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <h1><span class="coin">円</span>おてつだい こづかい帳</h1>
-    <div class="monthnav">
-      <button class="iconbtn" id="prev" aria-label="前の月">◀</button>
-      <div class="label num" id="monthLabel"></div>
-      <button class="iconbtn" id="next" aria-label="次の月">▶</button>
-      <button class="iconbtn" id="thisMonth">今月</button>
-    </div>
-  </header>
 
-  <p class="sync" id="syncNote" role="status">この端末に保存しています</p>
+<!-- ホーム：アプリを えらぶ -->
+<section class="screen home" id="famHome">
+  <h1 class="logo">かぞくの<b>アプリ</b></h1>
+  <p class="lead">なにを する？</p>
+  <div class="who fam-apps">
+    <button class="who-btn" data-go="study">
+      <span class="av">📚</span><span class="nm">まいにち30ぷん</span>
+      <span class="st">えいご と さんすう</span>
+    </button>
+    <button class="who-btn" data-go="kozukai">
+      <span class="av">🪙</span><span class="nm">おてつだい</span>
+      <span class="st num" id="famKzSt">こづかい帳</span>
+    </button>
+  </div>
+</section>
 
-  <div class="tabs" id="tabs" role="group" aria-label="表示する子ども"></div>
-
-  <div class="summary" id="summary"></div>
-
-  <section class="cal" aria-label="カレンダー">
-    <div class="dow"><div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div></div>
-    <div class="grid" id="grid"></div>
-  </section>
-
-  <section class="panel">
-    <h2>今月の明細</h2>
-    <p class="hint">おてつだいごとの回数と金額です。月末にこの金額をしきゅうします。</p>
-    <div class="bd"><table id="detail"></table></div>
-  </section>
-
-  <section class="panel">
-    <h2>おてつだいの種類</h2>
-    <p class="hint">名前と金額を変えたり、新しいおてつだいを追加できます。金額を変えても、すでに記録した日の金額はそのままです。</p>
-    <div class="chorelist" id="choreList"></div>
-    <form class="row" id="addChore">
-      <input type="text" id="newChoreName" placeholder="例：ゴミ出し" aria-label="おてつだいの名前" required>
-      <input type="number" id="newChorePrice" min="0" step="10" value="10" aria-label="金額（円）" required>
-      <span>円</span>
-      <button class="btn" type="submit">追加</button>
-    </form>
-  </section>
-
-  <section class="panel">
-    <h2>こども</h2>
-    <div class="chorelist" id="kidList"></div>
-    <form class="row" id="addKid">
-      <input type="text" id="newKidName" placeholder="名前" aria-label="こどもの名前" required>
-      <button class="btn" type="submit">追加</button>
-    </form>
-  </section>
-
-  <section class="panel">
-    <h2>バックアップ</h2>
-    <p class="hint" id="backupHint">記録をファイルに書き出しておくと、万一のときに読み込んで元に戻せます。</p>
-    <div class="row">
-      <button class="btn ghost" id="exportBtn" type="button">ファイルに書き出す</button>
-      <label class="btn ghost" for="importFile">ファイルから読み込む</label>
-      <input type="file" id="importFile" accept="application/json,.json" hidden>
-    </div>
-    <p class="hint" id="backupMsg" role="status"></p>
-  </section>
+<!-- まいにち30ぷん から ホームへ もどる バー -->
+<div class="fam-bar" id="famBar" hidden>
+  <button class="link fam-home">← かぞくのアプリ</button>
 </div>
+<main id="app" aria-live="polite" hidden></main>
 
-<div class="sheet" id="sheet" hidden>
-  <div class="box" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-    <div class="row" style="justify-content:space-between">
-      <h3 id="sheetTitle"></h3>
-      <button class="btn" id="sheetClose">とじる</button>
+<!-- おてつだい こづかい帳 -->
+<section class="screen" id="kz" hidden>
+  <header class="topbar">
+    <button class="icon-btn fam-home" aria-label="ホームへ もどる">←</button>
+    <h2>🪙 おてつだい こづかい帳</h2>
+    <span></span>
+  </header>
+  <p class="kz-sync" id="kzSync" role="status">この 端末に 保存しています</p>
+
+  <div class="kz-kids" id="kzKids" role="group" aria-label="だれの 記録を 見る？"></div>
+
+  <div class="card cal kz-cal" id="kzCal"></div>
+
+  <div class="card">
+    <h2 id="kzDetailTitle">明細</h2>
+    <p class="hint">おてつだいごとの 回数と 金額です。月末に この金額を しきゅうします。</p>
+    <div class="kz-scroll"><table class="kt" id="kzDetail"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>おてつだいの しゅるい</h2>
+    <p class="hint">名前と 金額を 変えたり、新しい おてつだいを 追加できます。金額を 変えても、もう 記録した 日の 金額は そのままです。</p>
+    <div class="kz-list" id="kzChores"></div>
+    <form class="kz-row" id="kzAddChore">
+      <input class="kz-in" type="text" id="kzNewChore" placeholder="例：ゴミ出し" aria-label="おてつだいの 名前" required>
+      <input class="kz-in price" type="number" id="kzNewPrice" min="0" step="10" value="10" aria-label="金額（円）" required>
+      <span>円</span>
+      <button class="btn sm primary" type="submit">追加</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>こども</h2>
+    <div class="kz-list" id="kzKidList"></div>
+    <form class="kz-row" id="kzAddKid">
+      <input class="kz-in" type="text" id="kzNewKid" placeholder="名前" aria-label="こどもの 名前" required>
+      <button class="btn sm primary" type="submit">追加</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>バックアップ</h2>
+    <p class="hint" id="kzBackupHint">記録を ファイルに 書き出しておくと、万一のときに 読み込んで 元に もどせます。</p>
+    <div class="kz-row wrap">
+      <button class="btn sm ghost" id="kzExport" type="button">ファイルに 書き出す</button>
+      <label class="btn sm ghost" for="kzImport">ファイルから 読み込む</label>
+      <input type="file" id="kzImport" accept="application/json,.json" hidden>
     </div>
-    <div id="sheetBody" class="chorelist"></div>
+    <p class="hint" id="kzBackupMsg" role="status"></p>
+  </div>
+</section>
+
+<div class="overlay kz-ov" id="kzSheet" hidden>
+  <div class="ov-card" role="dialog" aria-modal="true" aria-labelledby="kzSheetTitle">
+    <h2 id="kzSheetTitle"></h2>
+    <div id="kzSheetBody" class="kz-list"></div>
+    <button class="btn big primary" id="kzSheetClose">とじる</button>
   </div>
 </div>
 
+<script src="js/data.js"></script>
+<script src="js/questions.js"></script>
+<script src="js/app.js"></script>
+<script src="js/kozukai.js"></script>
 <script>
-const KEY = "otetsudai-kozukai-v1";
-const KID_COLORS = 6;
-const uid = () => Math.random().toString(36).slice(2, 9);
-const clone = (o) => JSON.parse(JSON.stringify(o));
+/* ホーム と 2つの アプリの きりかえ（#study / #kozukai） */
+(function () {
+  'use strict';
+  const home = document.getElementById('famHome');
+  const study = document.getElementById('app');
+  const bar = document.getElementById('famBar');
+  const kz = document.getElementById('kz');
+  // べんきょう中・ゲーム中・タイマーでは もどる バーを 出さない
+  const BAR_SCREENS = ['home', 'dash', 'parent', 'report', 'pform'];
 
-// 最初から入っている項目は、どのスマホでも同じ id になるよう固定する
-function defaults() {
-  const chores = [
-    ["お風呂洗い", 10], ["お洗濯たたみ", 20], ["掃除機", 10], ["布団敷き", 20],
-    ["食器洗い", 20], ["靴並べ", 10], ["玄関はき", 10], ["食器並べ", 10],
-  ].map(([name, price], i) => ({ id: "c" + (i + 1), name, price }));
-  const kids = ["こうたろう", "かこ", "そうじろう", "みちさぶろう"]
-    .map((name, i) => ({ id: "k" + (i + 1), name, color: i }));
-  return { chores, kids, records: {} };
-}
-
-// records[YYYY-MM-DD][kidId][choreId] = { n: 名前, p: 記録時の金額 }
-// 共有モードでは表示中の月の分だけを持つ。
-let state;
-try { state = JSON.parse(localStorage.getItem(KEY)) || defaults(); } catch { state = defaults(); }
-
-// ---- 保存先：共有データベース（使えるとき）か、この端末 ----
-let db = null;
-let unsubMonth = null;
-const chains = {};
-function saveLocal() { if (!db) try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
-function queue(key, fn) {
-  const run = (chains[key] || Promise.resolve()).then(fn).catch(onWriteError);
-  chains[key] = run;
-  return run;
-}
-function onWriteError(e) {
-  setSync("err", e && e.code === "invalid_argument"
-    ? "保存できませんでした。持ち主に共有設定で「Contributor」以上にしてもらってください。"
-    : "保存できませんでした。電波の良いところでもう一度ためしてください。");
-}
-function persistConfig() {
-  if (!db) return saveLocal();
-  const body = clone({ chores: state.chores, kids: state.kids });
-  queue("config", () => db.doc("app/config").set(body));
-}
-function persistDay(date) {
-  if (!db) return saveLocal();
-  const r = state.records[date] ? clone(state.records[date]) : null;
-  const ref = db.doc("days/" + date);
-  queue("d" + date, () => (r ? ref.set({ m: date.slice(0, 7), r }) : ref.delete()));
-}
-function setSync(kind, text) {
-  const el = $("syncNote");
-  el.className = "sync" + (kind ? " " + kind : "");
-  el.textContent = text;
-}
-function subscribeMonth() {
-  if (!db) return;
-  if (unsubMonth) unsubMonth();
-  const m = `${view.y}-${pad(view.m + 1)}`;
-  unsubMonth = db.collection("days").where("m", "==", m).onSnapshot((snap) => {
-    const rec = {};
-    snap.docs.forEach((d) => { rec[d.id] = clone(d.data().r || {}); });
-    state.records = rec;
-    render();
-  }, () => setSync("err", "共有データを読み込めませんでした。ページを開き直してください。"));
-}
-
-const now = new Date();
-let view = { y: now.getFullYear(), m: now.getMonth(), kid: "all" };
-
-const $ = (id) => document.getElementById(id);
-const pad = (n) => String(n).padStart(2, "0");
-const ymd = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
-const yen = (n) => n.toLocaleString("ja-JP");
-const kidColor = (k) => `var(--k${k.color % KID_COLORS})`;
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
-function dayEntries(date, kidId) {
-  return Object.values(state.records[date]?.[kidId] || {});
-}
-function daySum(date, kidId) {
-  return dayEntries(date, kidId).reduce((s, e) => s + e.p, 0);
-}
-function monthDates() {
-  const n = new Date(view.y, view.m + 1, 0).getDate();
-  return Array.from({ length: n }, (_, i) => ymd(view.y, view.m, i + 1));
-}
-
-function renderTabs() {
-  const tabs = [{ id: "all", name: "みんな" }, ...state.kids];
-  $("tabs").innerHTML = tabs.map((k) =>
-    `<button class="tab" data-kid="${k.id}" aria-pressed="${view.kid === k.id}" style="--kc:${k.id === "all" ? "var(--accent)" : kidColor(k)}"><span class="dot"></span>${esc(k.name)}</button>`
-  ).join("");
-}
-
-function renderSummary() {
-  const dates = monthDates();
-  let total = 0;
-  const cards = state.kids.map((k) => {
-    let sum = 0, cnt = 0;
-    dates.forEach((d) => { const e = dayEntries(d, k.id); cnt += e.length; sum += e.reduce((s, x) => s + x.p, 0); });
-    total += sum;
-    return `<div class="sum" style="--kc:${kidColor(k)}"><span class="who">${esc(k.name)}</span><span class="yen num">${yen(sum)}<small>円</small></span><span class="cnt num">${cnt}回 おてつだい</span></div>`;
-  });
-  cards.push(`<div class="sum total"><span class="who">ごうけい</span><span class="yen num">${yen(total)}<small>円</small></span><span class="cnt">${view.m + 1}月のしきゅう額</span></div>`);
-  $("summary").innerHTML = cards.join("");
-}
-
-function renderCalendar() {
-  $("monthLabel").textContent = `${view.y}年 ${view.m + 1}月`;
-  const first = new Date(view.y, view.m, 1).getDay();
-  const days = new Date(view.y, view.m + 1, 0).getDate();
-  const cells = Math.ceil((first + days) / 7) * 7;
-  const todayStr = ymd(now.getFullYear(), now.getMonth(), now.getDate());
-  let html = "";
-  for (let i = 0; i < cells; i++) {
-    const d = i - first + 1;
-    if (d < 1 || d > days) { html += `<div class="day out" aria-hidden="true"></div>`; continue; }
-    const date = ymd(view.y, view.m, d);
-    const dow = i % 7;
-    const cls = ["day", dow === 0 && "sun", dow === 6 && "sat", date === todayStr && "today"].filter(Boolean).join(" ");
-    let body = "";
-    if (view.kid === "all") {
-      const chips = state.kids.map((k) => {
-        const s = daySum(date, k.id);
-        return s ? `<span class="chip num" style="--kc:${kidColor(k)}"><span class="cn">${esc(k.name.slice(0, 3))} </span><b>${s}</b>円</span>` : "";
-      }).join("");
-      body = `<div class="chips">${chips}</div>`;
-    } else {
-      const e = dayEntries(date, view.kid);
-      const s = e.reduce((a, x) => a + x.p, 0);
-      body = `<div class="marks" data-n="${e.length ? e.length + "こ" : ""}">${e.map((x) => `<span class="mark">${esc(x.n)}</span>`).join("")}</div>` +
-        (s ? `<span class="daytotal num">${s}円</span>` : "");
-    }
-    html += `<button class="${cls}" data-date="${date}" aria-label="${view.m + 1}月${d}日"><span class="d num">${d}</span>${body}</button>`;
+  function updateBar() {
+    bar.hidden = study.hidden || !BAR_SCREENS.includes(study.dataset.screen);
   }
-  $("grid").innerHTML = html;
-}
-
-function renderDetail() {
-  const dates = monthDates();
-  const rows = new Map();
-  const kidTotals = state.kids.map(() => 0);
-  dates.forEach((date) => state.kids.forEach((k, ki) => {
-    Object.entries(state.records[date]?.[k.id] || {}).forEach(([cid, e]) => {
-      if (!rows.has(cid)) rows.set(cid, { name: e.n, per: state.kids.map(() => ({ c: 0, s: 0 })) });
-      const r = rows.get(cid).per[ki]; r.c++; r.s += e.p; kidTotals[ki] += e.p;
-    });
-  }));
-  const order = state.chores.map((c) => c.id).filter((id) => rows.has(id)).concat([...rows.keys()].filter((id) => !state.chores.some((c) => c.id === id)));
-  const head = `<thead><tr><th>おてつだい</th>${state.kids.map((k) => `<th>${esc(k.name)}</th>`).join("")}</tr></thead>`;
-  const body = order.length
-    ? order.map((id) => { const r = rows.get(id); return `<tr><td>${esc(r.name)}</td>${r.per.map((p) => `<td class="num">${p.c ? `${p.c}回 / ${yen(p.s)}円` : "—"}</td>`).join("")}</tr>`; }).join("")
-    : `<tr><td colspan="${state.kids.length + 1}" style="text-align:left;color:var(--muted)">まだ記録がありません。カレンダーの日付を押して記録します。</td></tr>`;
-  const foot = `<tfoot><tr><td>しきゅう額</td>${kidTotals.map((t) => `<td class="num">${yen(t)}円</td>`).join("")}</tr></tfoot>`;
-  $("detail").innerHTML = head + `<tbody>${body}</tbody>` + foot;
-}
-
-// 入力中に他のスマホの変更が届いても、打っている欄を消さない
-const editing = (id) => $(id).contains(document.activeElement) && document.activeElement.tagName === "INPUT";
-
-function renderChores() {
-  if (editing("choreList")) return;
-  $("choreList").innerHTML = state.chores.map((c) => `
-    <div class="chore" data-id="${c.id}">
-      <input type="text" id="cn-${c.id}" value="${esc(c.name)}" data-f="name" aria-label="おてつだいの名前">
-      <input type="number" id="cp-${c.id}" value="${c.price}" min="0" step="10" data-f="price" aria-label="金額（円）"><span>円</span>
-      <button class="btn danger" data-del="${c.id}">${pendingDelete === c.id ? "本当に消す" : "削除"}</button>
-    </div>`).join("");
-}
-
-function renderKids() {
-  if (editing("kidList")) return;
-  $("kidList").innerHTML = state.kids.map((k) => `
-    <div class="chore" data-id="${k.id}">
-      <span class="tab" style="--kc:${kidColor(k)};padding:4px 8px" aria-hidden="true"><span class="dot"></span></span>
-      <input type="text" id="kn-${k.id}" value="${esc(k.name)}" aria-label="名前">
-      <button class="btn danger" data-delkid="${k.id}">${pendingDelete === k.id ? "本当に消す" : "削除"}</button>
-    </div>`).join("");
-}
-
-function render() {
-  renderTabs(); renderSummary(); renderCalendar(); renderDetail(); renderChores(); renderKids();
-  if (openDate) renderSheet();
-}
-
-// ---- 日付を押したとき ----
-let openDate = null;
-function renderSheet() {
-  const [y, m, d] = openDate.split("-").map(Number);
-  const w = "日月火水木金土"[new Date(y, m - 1, d).getDay()];
-  $("sheetTitle").textContent = `${m}月${d}日（${w}）のおてつだい`;
-  const kids = view.kid === "all" ? state.kids : state.kids.filter((k) => k.id === view.kid);
-  $("sheetBody").innerHTML = kids.map((k) => {
-    const rec = state.records[openDate]?.[k.id] || {};
-    const opts = state.chores.map((c) => {
-      const on = !!rec[c.id];
-      const p = on ? rec[c.id].p : c.price;
-      return `<button class="opt" aria-pressed="${on}" data-kid="${k.id}" data-chore="${c.id}"><span class="n">${esc(c.name)}</span><span class="p num">${p}円</span></button>`;
-    });
-    // 削除済みのおてつだいの記録も表示して外せるようにする
-    Object.entries(rec).forEach(([cid, e]) => {
-      if (!state.chores.some((c) => c.id === cid))
-        opts.push(`<button class="opt gone" aria-pressed="true" data-kid="${k.id}" data-chore="${cid}"><span class="n">${esc(e.n)}</span><span class="p num">${e.p}円</span></button>`);
-    });
-    return `<div class="kidblock" style="--kc:${kidColor(k)}"><div class="kh"><span>${esc(k.name)}</span><span class="num" style="color:var(--coin)">${daySum(openDate, k.id)}円</span></div><div class="opts">${opts.join("")}</div></div>`;
-  }).join("");
-}
-function openSheet(date) { openDate = date; renderSheet(); $("sheet").hidden = false; $("sheetClose").focus(); }
-function closeSheet() { $("sheet").hidden = true; openDate = null; }
-
-$("sheetBody").addEventListener("click", (e) => {
-  const b = e.target.closest(".opt"); if (!b) return;
-  const { kid, chore } = b.dataset;
-  const date = openDate;
-  const day = (state.records[date] ||= {});
-  const rec = (day[kid] ||= {});
-  if (rec[chore]) delete rec[chore];
-  else { const c = state.chores.find((x) => x.id === chore); rec[chore] = { n: c.name, p: c.price }; }
-  if (!Object.keys(rec).length) delete day[kid];
-  if (!Object.keys(day).length) delete state.records[date];
-  persistDay(date);
-  render();
-});
-$("sheetClose").onclick = closeSheet;
-$("sheet").addEventListener("click", (e) => { if (e.target === $("sheet")) closeSheet(); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
-
-// ---- ナビゲーション ----
-function goMonth(y, m) {
-  view.y = y; view.m = m;
-  if (db) state.records = {};
-  render(); subscribeMonth();
-}
-function shift(n) { const d = new Date(view.y, view.m + n, 1); goMonth(d.getFullYear(), d.getMonth()); }
-$("prev").onclick = () => shift(-1);
-$("next").onclick = () => shift(1);
-$("thisMonth").onclick = () => goMonth(now.getFullYear(), now.getMonth());
-$("tabs").addEventListener("click", (e) => { const b = e.target.closest(".tab"); if (b) { view.kid = b.dataset.kid; render(); } });
-$("grid").addEventListener("click", (e) => { const b = e.target.closest(".day[data-date]"); if (b) openSheet(b.dataset.date); });
-
-// ---- おてつだい・こどもの編集 ----
-let pendingDelete = null;
-$("choreList").addEventListener("change", (e) => {
-  const row = e.target.closest(".chore"); const c = state.chores.find((x) => x.id === row.dataset.id);
-  if (e.target.dataset.f === "name") c.name = e.target.value.trim() || c.name;
-  else c.price = Math.max(0, parseInt(e.target.value, 10) || 0);
-  e.target.blur(); persistConfig(); render();
-});
-$("choreList").addEventListener("click", (e) => {
-  const id = e.target.dataset.del; if (!id) return;
-  if (pendingDelete !== id) { pendingDelete = id; renderChores(); return; }
-  state.chores = state.chores.filter((c) => c.id !== id); pendingDelete = null; persistConfig(); render();
-});
-$("addChore").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = $("newChoreName").value.trim(); if (!name) return;
-  state.chores.push({ id: uid(), name, price: Math.max(0, parseInt($("newChorePrice").value, 10) || 0) });
-  $("newChoreName").value = ""; persistConfig(); render();
-});
-$("kidList").addEventListener("change", (e) => {
-  const k = state.kids.find((x) => x.id === e.target.closest(".chore").dataset.id);
-  k.name = e.target.value.trim() || k.name; e.target.blur(); persistConfig(); render();
-});
-$("kidList").addEventListener("click", (e) => {
-  const id = e.target.dataset.delkid; if (!id) return;
-  if (pendingDelete !== id) { pendingDelete = id; renderKids(); return; }
-  state.kids = state.kids.filter((k) => k.id !== id);
-  if (!db) Object.values(state.records).forEach((day) => delete day[id]);
-  if (view.kid === id) view.kid = "all";
-  pendingDelete = null; persistConfig(); render();
-});
-$("addKid").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = $("newKidName").value.trim(); if (!name) return;
-  const used = new Set(state.kids.map((k) => k.color));
-  let color = 0; while (used.has(color) && color < KID_COLORS) color++;
-  state.kids.push({ id: uid(), name, color: color % KID_COLORS });
-  $("newKidName").value = ""; persistConfig(); render();
-});
-
-// ---- バックアップ ----
-const backupMsg = (t) => { $("backupMsg").textContent = t; };
-$("exportBtn").onclick = async () => {
-  const out = { chores: state.chores, kids: state.kids, records: state.records };
-  if (db) {
-    try {
-      const snap = await db.collection("days").get();
-      out.records = {};
-      snap.docs.forEach((d) => { out.records[d.id] = d.data().r || {}; });
-    } catch { backupMsg("記録を読み込めませんでした。もう一度ためしてください。"); return; }
+  function updateTile() {
+    const t = window.Kozukai.monthTotal();
+    document.getElementById('famKzSt').textContent = `${window.Kozukai.month()}月 ごうけい ${t.sum.toLocaleString('ja-JP')}円`;
   }
-  const text = JSON.stringify(out, null, 2);
-  const filename = `kozukai-${ymd(now.getFullYear(), now.getMonth(), now.getDate())}.json`;
-  const dl = window.claude?.use ? await window.claude.use("downloads") : null;
-  if (dl) {
-    try { await dl.save({ filename, data: text }); backupMsg("書き出しました。"); }
-    catch (err) { backupMsg(err && err.code === "declined" ? "書き出しをやめました。" : "書き出せませんでした。"); }
-    return;
+  function route() {
+    const r = location.hash.slice(1);
+    home.hidden = r === 'study' || r === 'kozukai';
+    study.hidden = r !== 'study';
+    kz.hidden = r !== 'kozukai';
+    updateBar();
+    window.scrollTo(0, 0);
   }
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-  a.download = filename;
-  a.click(); URL.revokeObjectURL(a.href);
-};
-$("importFile").addEventListener("change", async (e) => {
-  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
-  let data;
-  try {
-    data = JSON.parse(await f.text());
-    if (!Array.isArray(data.chores) || !Array.isArray(data.kids) || typeof data.records !== "object") throw 0;
-  } catch { backupMsg("読み込めませんでした。このアプリで書き出したファイルを選んでください。"); return; }
-  state.chores = data.chores; state.kids = data.kids; view.kid = "all";
-  if (db) {
-    persistConfig();
-    Object.entries(data.records).forEach(([date, r]) => { state.records[date] = r; persistDay(date); });
-    await Promise.all(Object.values(chains));
-    subscribeMonth();
-  } else {
-    state.records = data.records; saveLocal();
+  function go(r) {
+    if (location.hash.slice(1) === r) return;
+    location.hash = r;
+    route();
   }
-  render(); backupMsg("読み込みました。");
-});
 
-render();
+  home.addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
+  document.querySelectorAll('.fam-home').forEach((b) => b.addEventListener('click', () => go('')));
+  window.addEventListener('hashchange', route);
+  new MutationObserver(updateBar).observe(study, { attributes: true, attributeFilter: ['data-screen'] });
 
-// 共有データベースが使えるときは、家族のスマホで同じ記録を見る
-(async () => {
-  if (!window.claude?.use) return;
-  db = await window.claude.use("db");
-  if (!db) return;
-  setSync("on", "家族のスマホと共有しています");
-  $("backupHint").textContent = "記録は家族みんなで共有されています。念のためファイルにも書き出しておけます。";
-  state.records = {};
-  db.doc("app/config").onSnapshot((snap) => {
-    if (!snap.exists) return;
-    const d = snap.data();
-    state.chores = clone(d.chores || []);
-    state.kids = clone(d.kids || []);
-    if (view.kid !== "all" && !state.kids.some((k) => k.id === view.kid)) view.kid = "all";
-    render();
-  }, () => setSync("err", "共有データを読み込めませんでした。ページを開き直してください。"));
-  subscribeMonth();
+  window.Kozukai.init({ onChange: updateTile });
+  route();
 })();
 </script>
 </body>
