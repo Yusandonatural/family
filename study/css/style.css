@@ -639,3 +639,11 @@ hr { border: 0; border-top: 1px dashed var(--line); margin: 12px 0; }
 .xpbar { display: block; height: 6px; margin: 6px 10px 0; border-radius: 99px; background: #f3f0fb; overflow: hidden; }
 .xpbar span { display: block; height: 100%; background: #7e57c2; }
 @media (min-width: 740px) { .qb-title { font-size: 1.15rem; } .qb-dots i { width: 18px; height: 18px; } }
+
+/* アカウント えらび */
+.who-btn { position: relative; }
+.who-btn.last { box-shadow: 0 0 0 3px var(--pri), var(--shadow); }
+.last-tag { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--pri); color: #fff; font-size: .7rem; font-weight: 800; padding: 1px 10px; border-radius: 999px; white-space: nowrap; }
+.add-who { background: transparent; box-shadow: none; border: 3px dashed #e6d7c2; }
+.add-who .av { color: var(--sub); font-weight: 800; }
+.me small u { text-decoration: none; color: var(--en); font-weight: 800; }
