@@ -45,7 +45,7 @@
       name, grade, avatar,
       studyMin: 10, gameMin: 10, enRatio: 0.7, maxLessons: 0,
       lvEn: 1, lvMath: 1, recentEn: [], recentMath: [],
-      level: { en: 1, math: 1, auto: true, from: '' },
+      level: { en: 4, math: 4, auto: true, from: '', v2: true }, xp: 0,
       stars: 0, days: {}, kinds: {},
     };
   }
@@ -68,46 +68,36 @@
     { prev: 0, hard: 1, next: 0.25, ja: '上の学年にチャレンジ（約25%）' },
     { prev: 0, hard: 1, next: 0.35, ja: '上の学年にチャレンジ（約35%）' },
     { prev: 0, hard: 1, next: 0.5, ja: '上の学年にチャレンジ（約半分）' },
+    { prev: 0, hard: 1, next: 0.6, ja: '上の学年の問題が6割' },
+    { prev: 0, hard: 1, next: 0.7, ja: '上の学年の問題が7割' },
+    { prev: 0, hard: 1, next: 0.8, ja: '上の学年の問題が8割' },
+    { prev: 0, hard: 1, next: 0.9, ja: '上の学年の問題が9割' },
+    { prev: 0, hard: 1, next: 1, ja: 'ぜんぶ上の学年の問題' },
   ];
-  const maxLevel = (p) => (p.grade >= 8 ? 6 : 10); // 小6は 上の学年が ないので 6まで
+  const maxLevel = (p) => (p.grade >= 8 ? 6 : 15); // 小6は 上の学年が ないので 6まで
   function levels(p) {
     if (!p.level) {
       // まえの しくみ（かんたん／ふつう）から ひきつぐ
-      p.level = { en: p.lvEn > 1 ? 5 : 1, math: p.lvMath > 1 ? 5 : 1, auto: true, from: '' };
+      p.level = { en: p.lvEn > 1 ? 5 : 4, math: p.lvMath > 1 ? 5 : 4, auto: true, from: '' };
     }
+    // クエスト制に かえたとき：かんたんすぎないよう Lv4 からに
+    if (!p.level.v2) { p.level.en = Math.max(p.level.en, 4); p.level.math = Math.max(p.level.math, 4); p.level.v2 = true; }
     return p.level;
   }
-  // 1日に1回：まえに べんきょうした日の 正解率で レベルを 上げ下げ
+  // その日の レベルを きろく（記録画面の 推移用）
   function dailyLevelUp(p) {
-    const L = levels(p), tk = dkey(), d = today(p);
-    if (d.lvE != null) return;
-    let change = null;
-    if (L.auto) {
-      const prev = Object.keys(p.days).filter((k) => k < tk && k > (L.from || '') && p.days[k].q > 0).sort().pop();
-      if (prev) {
-        const r = p.days[prev];
-        change = {};
-        for (const [subj, qk, ck] of [['en', 'qe', 'ce'], ['math', 'qm', 'cm']]) {
-          const n = r[qk] || 0, acc = n ? (r[ck] || 0) / n : 0;
-          let dlt = 0;
-          if (n >= 10 && acc >= 0.75) dlt = 1;
-          else if (n >= 10 && acc < 0.55) dlt = -1;
-          const nv = Math.max(1, Math.min(maxLevel(p), L[subj] + dlt));
-          change[subj] = nv - L[subj];
-          L[subj] = nv;
-        }
-        L.from = prev;
-      }
-    }
+    const L = levels(p), d = today(p);
     d.lvE = L.en; d.lvM = L.math;
-    if (change && (change.en || change.math)) d.lvChange = change;
-    save();
   }
+  // プレイヤーレベル（XP）
+  const xpNeed = (n) => 50 * n * (n + 1); // Lv.n → n+1 に ひつような るいけい XP
+  function playerLevel(xp) { let n = 1; while (xp >= xpNeed(n)) n++; return n; }
+
   // レベルから、この もんだいの 学年と むずかしさを きめる
   function pickGradeLv(p, subj, sessionDrop) {
     const L = levels(p), g = p.grade;
     const lvNo = Math.max(1, L[subj === 'en' ? 'en' : 'math'] - (sessionDrop ? 1 : 0));
-    const cfg = LEVELS[Math.min(lvNo, 10)];
+    const cfg = LEVELS[Math.min(lvNo, LEVELS.length - 1)];
     const r = Math.random();
     let gg = g;
     if (g > 0 && r < cfg.prev) gg = g - 1;
@@ -327,7 +317,6 @@
     const ls = lessonsOf(d), lsec = lessonSecOf(d), can = canLesson(p, d);
     const pct = can ? lsec / target : 1;
     const st = streak(p);
-    const rk = rankOf(p.stars), nx = nextRank(p.stars);
     const gLeft = gameRemaining(d);
     const running = !!d.gameRunAt && gLeft > 0;
 
@@ -348,7 +337,6 @@
           </span>
         </header>
 
-        ${lvNoticeHTML(d)}
         <div class="dash-grid">
           <div class="dash-main">
             <div class="card today">
@@ -358,7 +346,7 @@
                 <div class="ldots" aria-label="きょうの レッスン">${lessonDots}</div>
                 <p>${can ? `あと <b>${Math.ceil((target - lsec) / 60)}ぷん</b> で ゲーム <b>+${p.gameMin}ぷん</b>！` : 'きょうの レッスンは ここまで。よく がんばったね！'}</p>
                 <p class="mix">えいご ${Math.round(p.enRatio * 100)}% ・ さんすう ${100 - Math.round(p.enRatio * 100)}%</p>
-                <div class="lv-chips"><span class="lv-chip en">🔤 えいご Lv.${L.en}</span><span class="lv-chip math">🔢 さんすう Lv.${L.math}</span></div>
+                <div class="lv-chips"><span class="lv-chip en">🔤 えいご Lv.${L.en}</span><span class="lv-chip math">🔢 さんすう Lv.${L.math}</span>${(d.quests || []).length ? `<span class="lv-chip quest">⚔️ クエスト ${(d.quests || []).length}こ ・ ★${(d.quests || []).reduce((a, x) => a + x.st, 0)}</span>` : ''}</div>
                 ${studyBtn}
               </div>
             </div>
@@ -379,7 +367,8 @@
             <div class="stats">
               <div class="stat"><span class="n">🔥 ${st}</span><span class="l">にち れんぞく</span></div>
               <div class="stat"><span class="n">⭐ ${p.stars}</span><span class="l">スター</span></div>
-              <div class="stat"><span class="n">${rk[1]}</span><span class="l">${rk[2]}${nx ? `<br><small>つぎまで ⭐${nx[0] - p.stars}</small>` : ''}</span></div>
+              <div class="stat"><span class="n">🏆 ${playerLevel(p.xp || 0)}</span><span class="l">プレイヤー Lv<br><small>つぎまで ${xpNeed(playerLevel(p.xp || 0)) - (p.xp || 0)}XP</small></span>
+                <span class="xpbar"><span style="width:${(() => { const n = playerLevel(p.xp || 0); const lo = n > 1 ? xpNeed(n - 1) : 0; return Math.round((((p.xp || 0) - lo) / (xpNeed(n) - lo)) * 100); })()}%"></span></span></div>
             </div>
           </div>
           <div class="dash-cal">
@@ -398,18 +387,6 @@
     on('.parent-link', 'click', () => pinGate(showParent));
     if (running) every(1000, () => { const el = $('.gl'); if (el) el.textContent = fmt(gameRemaining(today(p))); });
     mountCalendar($('[data-cal]'), p, false);
-  }
-
-  function lvNoticeHTML(d) {
-    const c = d.lvChange;
-    if (!c) return '';
-    const part = (subj, name) => (c[subj] > 0 ? `${name} Lv.${subj === 'en' ? d.lvE : d.lvM} に アップ！` : c[subj] < 0 ? `${name}は Lv.${subj === 'en' ? d.lvE : d.lvM} で じっくり` : '');
-    const up = c.en > 0 || c.math > 0;
-    return `<div class="card lv-notice ${up ? 'up' : ''}">
-      <span class="lv-ico">${up ? '⬆️' : '🐢'}</span>
-      <div><b>${up ? 'きのう よく がんばったから、きょうは レベルアップ！' : 'きょうは すこし やさしめで いこう'}</b>
-      <p>${[part('en', 'えいご'), part('math', 'さんすう')].filter(Boolean).join('　')}</p></div>
-    </div>`;
   }
 
   // ---------- 目標カード ----------
@@ -620,16 +597,19 @@
     let lastAct = Date.now();
     let paused = false;
     let q = null, answered = false, input = '';
-    let combo = 0, sessionStars = 0, sessionSec = 0;
-    const retry = []; // まちがえた問題 { q, at: もういちど出す時刻 }
-    // この かいの 正解率（ひくいときは その日だけ レベルを 1つ さげて 出す）
-    const sess = { en: [], math: [] };
-    const sessionAcc = (subj) => (sess[subj].length >= 10 ? sess[subj].slice(-10).reduce((a, b) => a + b, 0) / 10 : 1);
+    let combo = 0, sessionXP = 0, sessionSec = 0;
     dailyLevelUp(p);
-    // 最近 出した問題（10ぷん いないは おなじ問題を 出さない）
+    // 最近 出した問題（10ぷん）＋ 一度 正解した問題（ずっと）は 出さない
     const seen = (p.seenQ = p.seenQ || {});
     for (const k in seen) if (Date.now() - seen[k] >= NO_REPEAT_MS) delete seen[k];
-    const seenAt = (k) => (seen[k] && Date.now() - seen[k] < NO_REPEAT_MS ? seen[k] : 0);
+    const solved = (p.solved = p.solved || {});
+    const seenAt = (k) => solved[k] || (seen[k] && Date.now() - seen[k] < NO_REPEAT_MS ? seen[k] : 0);
+    // まちがいノート（正解するまで 次の日も 出る）
+    const notes = (p.mistakes = p.mistakes || []);
+    // クエスト
+    const QN = p.grade <= 2 ? 8 : 10;
+    let quest = null;
+    if (typeof p.xp !== 'number') p.xp = 0;
     let timeUp = rewardable && d.lessonSec >= target;
 
     keepAwake(true);
@@ -638,8 +618,9 @@
         <header class="study-bar">
           <button class="icon-btn quit" aria-label="やすむ">✕</button>
           <div class="tbar"><div class="tfill"></div><span class="tlabel"></span></div>
-          <span class="sstars">⭐<b>0</b></span>
+          <span class="sstars">✨<b>0</b></span>
         </header>
+        <div class="questbar"><span class="qb-title"></span><div class="qb-dots"></div></div>
         <div class="qwrap"></div>
         <div class="overlay idle hidden">
           <div class="ov-card">
@@ -659,10 +640,47 @@
         tlabel.textContent = `ボーナス れんしゅう ${fmt(sessionSec)}`;
       } else {
         tfill.style.width = Math.min(100, (d.lessonSec / target) * 100) + '%';
-        tlabel.textContent = timeUp ? 'この もんだいで クリア！' : `レッスン${lessonsOf(d) + 1} のこり ${fmt(target - d.lessonSec)}`;
+        tlabel.textContent = timeUp ? 'この クエストで レッスン クリア！' : `レッスン${lessonsOf(d) + 1} のこり ${fmt(target - d.lessonSec)}`;
       }
-      $('.sstars b').textContent = sessionStars;
+      $('.sstars b').textContent = sessionXP;
     }
+
+    const SUBJ_LABEL = { en: '🔤 えいご', conv: '🗣️ かいわ', math: '🔢 さんすう' };
+    function updateQuestBar() {
+      if (!quest) return;
+      const L = levels(p);
+      $('.qb-title').innerHTML = quest.phase === 'review'
+        ? `🔁 まちがえた もんだいを もういちど！ <small>のこり ${quest.review.length + 1}</small>`
+        : `⚔️ クエスト ${quest.no}・${SUBJ_LABEL[quest.subj]} ${quest.subj === 'conv' ? `ステップ${goals(p).conv.si + 1}` : `Lv.${L[quest.subj]}`}`;
+      $('.qb-dots').innerHTML = Array.from({ length: QN }, (_, i) => `<i class="${i < quest.res.length ? (quest.res[i] ? 'ok' : 'ng') : i === quest.res.length && quest.phase === 'main' ? 'now' : ''}"></i>`).join('');
+    }
+
+    function startQuest() {
+      goals(p);
+      const useEn = Math.random() < p.enRatio;
+      const convOk = STEPS[p.conv.si] && !p.conv.cleared[STEPS[STEPS.length - 1].id];
+      const subj = !useEn ? 'math' : convOk && Math.random() < CONV_SHARE ? 'conv' : 'en';
+      d.questNo = (d.questNo || 0) + 1;
+      quest = { no: d.questNo, subj, res: [], review: [], tries: {}, phase: 'main', xp: 0 };
+    }
+
+    // クエストの 教科で 1もん つくる
+    function makeQ(subj) {
+      // まちがいノートから ときどき（正解するまで 出る）
+      const noteIdx = notes.findIndex((n) => n.subj === subj && !(seen[n.q.key] && Date.now() - seen[n.q.key] < NO_REPEAT_MS));
+      if (noteIdx >= 0 && Math.random() < 0.3) { const x = reshuffle(notes[noteIdx].q); x.retry = true; x.fromNote = true; return x; }
+      if (subj === 'conv') {
+        const si = p.conv.si > 0 && Math.random() < 0.2 ? Math.floor(Math.random() * p.conv.si) : Math.min(p.conv.si, STEPS.length - 1);
+        const cq = Questions.nextConv({ g: p.grade, si, mastery: p.conv.m, seenAt });
+        if (cq) return cq;
+        subj = 'en';
+      }
+      const gl = pickGradeLv(p, subj, false);
+      const x = Questions.next({ g: gl.g, lvEn: gl.lv, lvMath: gl.lv, enRatio: subj === 'en' ? 1 : 0, seenAt, mathFocus: p.mathGoal.done || gl.g !== p.grade ? -1 : p.mathGoal.unit });
+      if (gl.g > p.grade) x.challenge = true;
+      return x;
+    }
+
 
     function act() { lastAct = Date.now(); if (paused) resume(); }
     function pause() { paused = true; $('.idle').classList.remove('hidden'); save(); }
@@ -697,26 +715,12 @@
     on('.resume', 'click', () => { SFX.tap(); resume(); });
 
     function nextQ() {
-      const due = retry.findIndex((r) => r.at <= Date.now() && !seenAt(r.q.key));
-      if (due >= 0) { q = retry.splice(due, 1)[0].q; q.retry = true; }
-      else {
-        goals(p);
-        const useEn = Math.random() < p.enRatio;
-        q = null;
-        if (useEn && Math.random() < CONV_SHARE) {
-          // いまの ステップ 8わり、クリアした ステップの ふくしゅう 2わり
-          const si = p.conv.si > 0 && Math.random() < 0.2 ? Math.floor(Math.random() * p.conv.si) : Math.min(p.conv.si, STEPS.length - 1);
-          q = Questions.nextConv({ g: p.grade, si, mastery: p.conv.m, seenAt });
-        }
-        if (!q) {
-          const subj = useEn ? 'en' : 'math';
-          const gl = pickGradeLv(p, subj, sessionAcc(subj) < 0.5);
-          q = Questions.next({ g: gl.g, lvEn: gl.lv, lvMath: gl.lv, enRatio: useEn ? 1 : 0, seenAt, mathFocus: p.mathGoal.done || gl.g !== p.grade ? -1 : p.mathGoal.unit });
-          if (gl.g > p.grade) q.challenge = true;
-        }
-      }
+      if (!quest) startQuest();
+      if (quest.phase === 'review') { q = quest.review.shift(); q.retry = true; }
+      else q = makeQ(quest.subj);
       seen[q.key] = Date.now();
       answered = false; input = '';
+      updateQuestBar();
       drawQ();
     }
 
@@ -753,6 +757,7 @@
         if (!answered) answer(c.value, b);
       }));
       if (q.type === 'speak') setupSpeak();
+      if (quest.phase === 'review') qwrap.querySelector('.qcard').classList.add('review');
       qwrap.querySelectorAll('.key').forEach((b) => b.addEventListener('click', () => { act(); press(b.dataset.k); }));
       const lb = qwrap.querySelector('.listen-btn, .say-btn');
       if (lb) lb.addEventListener('click', () => { act(); speak(q.say); });
@@ -778,7 +783,7 @@
         });
       });
       said.addEventListener('click', () => { act(); if (!answered) answer(q.answer, null); });
-      qwrap.querySelector('.skip').addEventListener('click', () => { act(); if (!answered) { answered = true; nextQ(); } });
+      qwrap.querySelector('.skip').addEventListener('click', () => { act(); if (!answered) { answered = true; if (quest.phase === 'review') afterAnswer(); else nextQ(); } });
     }
 
     function press(k) {
@@ -799,9 +804,31 @@
       kk.q += 1; if (ok) kk.c += 1;
       let goalMsg = null;
       if (ok) goalMsg = advanceGoals(p, q, d);
-      // 教科ごとの きろく（あしたの レベルぎめに つかう）
-      if (q.subj === 'en') { d.qe = (d.qe || 0) + 1; if (ok) d.ce = (d.ce || 0) + 1; sess.en.push(ok ? 1 : 0); }
-      else { d.qm = (d.qm || 0) + 1; if (ok) d.cm = (d.cm || 0) + 1; sess.math.push(ok ? 1 : 0); }
+      // 教科ごとの きろく
+      if (q.subj === 'en') { d.qe = (d.qe || 0) + 1; if (ok) d.ce = (d.ce || 0) + 1; }
+      else { d.qm = (d.qm || 0) + 1; if (ok) d.cm = (d.cm || 0) + 1; }
+      // 正解した問題は もう出さない／まちがえた問題は ノートへ
+      const ni = notes.findIndex((n) => n.q.key === q.key);
+      if (ok) {
+        solved[q.key] = Date.now();
+        if (ni >= 0) notes.splice(ni, 1);
+        const gain = 10 + (q.challenge ? 5 : 0);
+        quest.xp += gain; sessionXP += gain;
+      } else if (ni < 0) {
+        notes.push({ q: reshuffle(q), subj: quest.subj === 'conv' && q.conv ? 'conv' : q.subj, at: Date.now() });
+        if (notes.length > 60) notes.shift();
+      }
+      if (Object.keys(solved).length > 3000) {
+        Object.entries(solved).sort((x, y) => x[1] - y[1]).slice(0, 800).forEach(([k]) => delete solved[k]);
+      }
+      if (quest.phase === 'main') {
+        quest.res.push(ok);
+        if (!ok) quest.review.push(reshuffle(q));
+      } else if (!ok) {
+        // ふくしゅうで また まちがえたら、もう1かいだけ
+        quest.tries[q.key] = (quest.tries[q.key] || 0) + 1;
+        if (quest.tries[q.key] < 2) quest.review.push(reshuffle(q));
+      }
 
       const fb = qwrap.querySelector('.feedback');
       if (q.type !== 'input') {
@@ -816,7 +843,7 @@
       }
 
       if (ok) {
-        combo += 1; sessionStars += 1; p.stars += 1;
+        combo += 1; p.stars += 1;
         SFX.ok();
         fb.className = 'feedback good';
         fb.innerHTML = `<span class="mark">⭕</span><span>${praise(combo)}</span>`;
@@ -827,7 +854,6 @@
       } else {
         combo = 0;
         SFX.ng();
-        if (!q.retry) retry.push({ q: reshuffle(q), at: Date.now() + NO_REPEAT_MS });
         fb.className = 'feedback bad';
         fb.innerHTML = `<div class="fb-head"><span class="mark">❌</span>おしい！</div>
           <div class="explain">${q.type === 'input' ? `こたえ：<b>${q.answer}</b><br>` : ''}${q.explain || ''}</div>
@@ -840,8 +866,50 @@
     }
 
     function afterAnswer() {
-      if (rewardable && d.lessonSec >= target) return finish();
-      nextQ();
+      updateQuestBar();
+      if (quest.phase === 'main' && quest.res.length < QN) return nextQ();
+      if (quest.review.length) { quest.phase = 'review'; return nextQ(); }
+      endQuest();
+    }
+
+    function endQuest() {
+      const L = levels(p);
+      const good = quest.res.filter(Boolean).length, miss = QN - good;
+      const stars = miss === 0 ? 3 : miss <= 2 ? 2 : 1;
+      let lvMsg = '';
+      if (quest.subj !== 'conv' && L.auto) {
+        const k = quest.subj, before = L[k];
+        if (good >= Math.ceil(QN * 0.8)) L[k] = Math.min(maxLevel(p), L[k] + 1);
+        else if (good <= Math.floor(QN * 0.4)) L[k] = Math.max(1, L[k] - 1);
+        if (L[k] > before) lvMsg = `⬆️ ${SUBJ_LABEL[k]} Lv.${before} → <b>Lv.${L[k]}</b> レベルアップ！`;
+        else if (L[k] < before) lvMsg = `${SUBJ_LABEL[k]}は Lv.${L[k]} で もういちど じっくり`;
+        else if (L[k] >= maxLevel(p)) lvMsg = `${SUBJ_LABEL[k]} Lv.${L[k]}（さいこう レベル）`;
+      }
+      const bonus = stars * 20;
+      const plBefore = playerLevel(p.xp);
+      p.xp += quest.xp + bonus; sessionXP += bonus;
+      const plAfter = playerLevel(p.xp);
+      (d.quests = d.quests || []).push({ s: quest.subj, st: stars });
+      dailyLevelUp(p);
+      save(); updateBar();
+      const doneLesson = rewardable && d.lessonSec >= target;
+      if (stars === 3) SFX.fanfare(); else SFX.ok();
+      speak([{ text: stars === 3 ? 'Perfect!' : stars === 2 ? 'Great job!' : 'Good try!', lang: 'en' }]);
+      const ov = document.createElement('div');
+      ov.className = 'overlay quest-ov';
+      ov.innerHTML = `<div class="ov-card quest-card">
+        <small>クエスト ${quest.no} クリア！</small>
+        <div class="q-stars">${'<span class="on">★</span>'.repeat(stars)}${'<span>★</span>'.repeat(3 - stars)}</div>
+        <p class="q-score">${good} / ${QN} せいかい</p>
+        <p class="q-xp">✨ +${quest.xp + bonus} XP</p>
+        ${lvMsg ? `<p class="q-lv">${lvMsg}</p>` : ''}
+        ${plAfter > plBefore ? `<p class="q-pl">🏆 プレイヤー Lv.${plAfter} に なった！</p>` : ''}
+        <button class="btn big primary q-next">${doneLesson ? '🎉 レッスン クリア！' : '⚔️ つぎの クエスト'}</button>
+        ${doneLesson ? '' : '<button class="btn ghost q-stop">きょうは ここまで</button>'}
+      </div>`;
+      app.appendChild(ov);
+      ov.querySelector('.q-next').addEventListener('click', () => { act(); ov.remove(); quest = null; if (doneLesson) finish(); else nextQ(); });
+      const st = ov.querySelector('.q-stop'); if (st) st.addEventListener('click', () => { ov.remove(); save(); showDash(); });
     }
 
     function finish() {
@@ -1271,7 +1339,7 @@
           <h3>つかいかた</h3>
           <ol>
             <li>毎日「べんきょう スタート」。英語（約7割）と算数（約3割）の問題が学年に合わせて出ます。</li>
-            <li><b>📈 毎日すこしずつ難しく：</b>英語と算数にそれぞれレベル1〜10があり、前に勉強した日の正解率がよければ次の日にレベルが1つ上がります（低いレベルは前の学年の復習多め、レベル7からは上の学年にチャレンジ）。</li>
+            <li><b>⚔️ クエスト制：</b>10問で1クエスト。8割以上正解するとその場でレベルアップ、星とXPがもらえてプレイヤーレベルが上がります。英語・算数のレベルは1〜15（レベル7からは上の学年の問題にチャレンジ）。<b>一度正解した問題は二度と出ず、まちがえた問題だけ</b>クエストの最後と次の日以降に正解するまで出ます。</li>
             <li><b>🎯 目標：</b>英語は「英語で会話ができる」をゴールにした15ステップの「えいかいわロード」で進みます（あいさつ → 気持ち → 名前 → 好きなもの … → 自己紹介スピーチ）。聞き取り・受け答え・穴うめ・並べかえに加え、マイクで<b>声に出して言う練習</b>もあります。目標のステップと期限、算数で重点的にやる単元は、お子さまの「せってい」で決められます。</li>
             <li>タイマーは <b>問題に取り組んでいる間だけ</b> 進みます（${IDLE_LIMIT}秒操作がないと自動で止まります）。途中でやめても続きから再開できます。</li>
             <li><b>レッスン1回（標準10分）をクリアするごとに、ゲームタイム10分</b>がもらえます。2回やれば20分、3回で30分と貯まります。時間はお子さまごとに変えられます（1日の上限回数はお子さまごとの設定で変更できます）。</li>
@@ -1335,8 +1403,8 @@
     const lvOpts = LEVELS.slice(1, maxLevel(p) + 1).map((x, i) => [i + 1, `Lv.${i + 1}：${x.ja}`]);
     return `<fieldset class="goal-set">
       <legend>📈 難しさ（レベル）</legend>
-      <label class="switch-row"><input type="checkbox" name="lvAuto" ${L.auto ? 'checked' : ''}> 毎日すこしずつ自動で上げる</label>
-      <p class="hint">前に勉強した日の正解率が75%以上ならレベル+1、55%未満なら−1（10問以上解いた教科のみ）。その日の途中で正解率が5割を切ると、その回だけ1つやさしくします。</p>
+      <label class="switch-row"><input type="checkbox" name="lvAuto" ${L.auto ? 'checked' : ''}> クエストの結果で自動で上げ下げする</label>
+      <p class="hint">10問（年少〜年長は8問）で1クエスト。8割以上正解でその場でレベル+1、4割以下で−1。レベル7からは上の学年の問題が混ざり、Lv15は上の学年の問題だけになります（小6はLv6まで）。一度正解した問題は出さず、まちがえた問題だけクエストの最後と次の日以降にもう一度出ます。</p>
       <div class="two">
         <label>英語のレベル<select name="lvEn">${opts(lvOpts, L.en)}</select></label>
         <label>算数のレベル<select name="lvMath">${opts(lvOpts, L.math)}</select></label>
@@ -1482,11 +1550,12 @@
     const first = days[0] ? days[0][1] : null;
     const acc = (d, q, c) => (d[q] ? `${Math.round(((d[c] || 0) / d[q]) * 100)}%` : '−');
     return `<div class="card">
-      <h3>📈 レベル（${L.auto ? '毎日自動で調整' : '固定'}）</h3>
+      <h3>📈 レベル（${L.auto ? 'クエストで自動調整' : '固定'}）</h3>
       <p>英語 <b>Lv.${L.en}</b>（${LEVELS[L.en].ja}）${first ? `　最近14日で ${first.lvE}→${L.en}` : ''}<br>
       算数 <b>Lv.${L.math}</b>（${LEVELS[L.math].ja}）${first ? `　最近14日で ${first.lvM}→${L.math}` : ''}</p>
       ${days.length ? `<div class="lv-table-wrap"><table class="kt lv-table"><tr><th>日</th><th>英語Lv</th><th>正解率</th><th>算数Lv</th><th>正解率</th></tr>
         ${days.map(([k, d]) => `<tr><td>${+k.slice(5, 7)}/${+k.slice(8)}</td><td>${d.lvE}</td><td>${acc(d, 'qe', 'ce')}</td><td>${d.lvM}</td><td>${acc(d, 'qm', 'cm')}</td></tr>`).join('')}</table></div>` : ''}
+      <p>🏆 プレイヤー Lv.${playerLevel(p.xp || 0)}（${p.xp || 0} XP）・ 📒 まちがいノート ${(p.mistakes || []).length}問 ・ ✅ 正解ずみ（もう出さない）${Object.keys(p.solved || {}).length}問</p>
     </div>`;
   }
 
