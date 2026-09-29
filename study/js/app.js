@@ -26,7 +26,17 @@
     } catch (e) { /* 読めないときは 新規 */ }
     return { profiles: [], settings: { pin: '', voice: true, sound: true }, current: null };
   }
-  let S = load();
+  let S = migrate(load());
+  save();
+  // まえの 標準（30分 → 30分）のまま だった子を、いまの 標準（10分 → 10分）に（1回だけ）
+  function migrate(st) {
+    for (const p of st.profiles || []) {
+      if (p.min10) continue;
+      if (p.studyMin === 30 && p.gameMin === 30) { p.studyMin = 10; p.gameMin = 10; }
+      p.min10 = true;
+    }
+    return st;
+  }
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { console.warn('save failed', e); }
   }
@@ -43,7 +53,7 @@
     return {
       id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       name, grade, avatar,
-      studyMin: 10, gameMin: 10, enRatio: 0.7, maxLessons: 0,
+      studyMin: 10, gameMin: 10, enRatio: 0.7, maxLessons: 0, min10: true,
       lvEn: 1, lvMath: 1, recentEn: [], recentMath: [],
       level: { en: 4, math: 4, auto: true, from: '', v2: true }, xp: 0,
       stars: 0, days: {}, kinds: {},
@@ -1387,7 +1397,7 @@
           const s = JSON.parse(t);
           if (!s || !Array.isArray(s.profiles)) throw new Error('形式が違います');
           if (!confirm('今のデータを上書きして復元しますか？')) return;
-          S = s; save(); alert('復元しました'); showParent();
+          S = migrate(s); save(); alert('復元しました'); showParent();
         } catch (err) { alert('復元できませんでした：' + err.message); }
       });
     });
