@@ -292,7 +292,6 @@
   function showHome() {
     keepAwake(false);
     if (!S.profiles.length) return showProfileForm(null, true);
-    if (S.profiles.length === 1) { S.current = S.profiles[0].id; save(); return showDash(); }
     render(`
       <section class="screen home">
         <h1 class="logo">まいにち<b>30</b>ぷん</h1>
@@ -300,19 +299,22 @@
         <div class="who">
           ${S.profiles.map((p) => {
             const d = p.days[dkey()] || {};
-            return `<button class="who-btn" data-id="${p.id}">
+            return `<button class="who-btn ${p.id === S.current ? 'last' : ''}" data-id="${p.id}">
+              ${p.id === S.current ? '<span class="last-tag">さいごに つかった</span>' : ''}
               <span class="av">${p.avatar}</span><span class="nm">${esc(p.name)}</span>
               <span class="gr">${GRADES[p.grade]}</span>
               <span class="st">${d.cleared ? `✅ きょう レッスン ${lessonsOf(d)}かい` : '🔥 ' + streak(p) + 'にち れんぞく'}</span>
             </button>`;
           }).join('')}
+          <button class="who-btn add-who"><span class="av">＋</span><span class="nm">ついか</span><span class="gr">おうちの人が とうろく</span></button>
         </div>
         <button class="btn big ghost go-timer">⏱ タイマー${timerRunning() ? ` <b class="tchip">${fmt(timerLeft())}</b>` : ''}</button>
         <button class="link parent-link">⚙ おうちの人の せってい</button>
       </section>`, 'home');
     on('.go-timer', 'click', () => { SFX.tap(); showTimer(showHome); });
     on('.who-btn', 'click', (e) => { SFX.tap(); S.current = e.currentTarget.dataset.id; save(); showDash(); });
-    on('.parent-link', 'click', () => pinGate(showParent));
+    on('.add-who', 'click', () => { SFX.tap(); pinGate(() => showProfileForm(null, false, showHome), showHome); });
+    on('.parent-link', 'click', () => pinGate(() => showParent(showHome), showHome));
   }
 
   // =========================================================
@@ -340,7 +342,7 @@
     render(`
       <section class="screen dash">
         <header class="topbar">
-          <button class="me switch" aria-label="きりかえ"><span class="av">${p.avatar}</span><span><b>${esc(p.name)}</b><small>${GRADES[p.grade]}</small></span></button>
+          <button class="me switch" aria-label="きりかえ"><span class="av">${p.avatar}</span><span><b>${esc(p.name)}</b><small>${GRADES[p.grade]} ・ <u>きりかえ</u></small></span></button>
           <span class="top-actions">
             <button class="timer-btn go-timer" aria-label="タイマー">⏱<b class="tchip">${timerRunning() || S.timer && S.timer.left > 0 && S.timer.left < S.timer.total ? fmt(timerLeft()) : 'タイマー'}</b></button>
             <button class="icon-btn parent-link" aria-label="おうちの人の せってい">⚙</button>
@@ -393,8 +395,8 @@
     on('.go-timer', 'click', () => { SFX.tap(); showTimer(showDash); });
     on('.go-road', 'click', () => { SFX.tap(); showRoad(); });
     if (timerRunning()) every(1000, () => { const el = $('.go-timer .tchip'); if (el) el.textContent = fmt(timerLeft()); });
-    on('.switch', 'click', () => { if (S.profiles.length > 1) { S.current = null; save(); showHome(); } });
-    on('.parent-link', 'click', () => pinGate(showParent));
+    on('.switch', 'click', () => { SFX.tap(); showHome(); });
+    on('.parent-link', 'click', () => pinGate(() => showParent(showDash)));
     if (running) every(1000, () => { const el = $('.gl'); if (el) el.textContent = fmt(gameRemaining(today(p))); });
     mountCalendar($('[data-cal]'), p, false);
   }
@@ -1245,7 +1247,7 @@
   // =========================================================
   //  おうちの人
   // =========================================================
-  function pinGate(next) {
+  function pinGate(next, back) {
     if (!S.settings.pin) return next();
     let v = '';
     render(`
@@ -1258,7 +1260,7 @@
     const dots = () => $$('.pin-dots i').forEach((el, i) => el.classList.toggle('on', i < v.length));
     on('.key', 'click', (e) => {
       const k = e.currentTarget.dataset.k;
-      if (k === 'back') return S.current ? showDash() : showHome();
+      if (k === 'back') return back ? back() : S.current ? showDash() : showHome();
       if (k === 'del') v = v.slice(0, -1); else if (v.length < 4) v += k;
       dots();
       if (v.length === 4) {
@@ -1268,7 +1270,9 @@
     });
   }
 
-  function showParent() {
+  let parentBack = null;
+  function showParent(back) {
+    if (typeof back === 'function') parentBack = back;
     const rows = S.profiles.map((p) => {
       const d = p.days[dkey()] || { sec: 0, q: 0, c: 0 };
       return `<div class="prow">
@@ -1360,7 +1364,7 @@
         </div>
       </section>`, 'parent');
 
-    on('.back', 'click', () => (S.current ? showDash() : showHome()));
+    on('.back', 'click', () => (parentBack || (S.current ? showDash : showHome))());
     on('.add', 'click', () => showProfileForm(null));
     on('.edit', 'click', (e) => showProfileForm(e.currentTarget.dataset.id));
     on('.report', 'click', (e) => showReport(e.currentTarget.dataset.id));
@@ -1453,7 +1457,7 @@
     </fieldset>`;
   }
 
-  function showProfileForm(id, first) {
+  function showProfileForm(id, first, after) {
     const p = id ? S.profiles.find((x) => x.id === id) : null;
     const v = p || { name: '', grade: 3, avatar: AVATARS[S.profiles.length % AVATARS.length], studyMin: 10, gameMin: 10, enRatio: 0.7, maxLessons: 0 };
     const opts = (arr, sel) => arr.map(([val, label]) => `<option value="${val}" ${String(val) === String(sel) ? 'selected' : ''}>${label}</option>`).join('');
@@ -1498,7 +1502,7 @@
         </div>` : ''}
       </section>`, 'pform');
 
-    on('.back', 'click', showParent);
+    on('.back', 'click', after || showParent);
     on('.form', 'submit', (e) => {
       e.preventDefault();
       const f = new FormData(e.target);
@@ -1530,7 +1534,7 @@
       } else goals(t);
       if (!p) { S.profiles.push(t); S.current = t.id; }
       save();
-      if (first) showDash(); else showParent();
+      if (first) showHome(); else (after || showParent)();
     });
     if (p) {
       const t = today(p);
@@ -1633,5 +1637,6 @@
   }
 
   // 起動
-  if (S.current && cur()) showDash(); else showHome();
+  // さいしょは いつも アカウントを えらぶ 画面から
+  showHome();
 })();
