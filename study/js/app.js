@@ -6,7 +6,8 @@
   'use strict';
 
   const STORE_KEY = 'kids-study-v1';
-  const GRADES = ['年少さん', '年中さん', '年長さん', '1年生', '2年生', '3年生', '4年生', '5年生', '6年生'];
+  const GRADES = ['年少さん', '年中さん', '年長さん', '1年生', '2年生', '3年生', '4年生', '5年生', '6年生', '中学1年', '中学2年', '中学3年'];
+  const TOP_EN = 11; // 英語は 中3まで
   const AVATARS = ['🐶', '🐱', '🐰', '🐻', '🐼', '🦁', '🐯', '🐸', '🐧', '🦊', '🐨', '🦄', '🐲', '🐳', '🦖', '🐥'];
   const STAMPS = ['🌟', '🌈', '🍀', '🎈', '🦄', '🐳', '🌻', '🍓', '🚀', '🎉', '🍩', '🦋', '🐬', '🌸'];
   const RANKS = [
@@ -39,6 +40,75 @@
   }
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { console.warn('save failed', e); }
+  }
+
+  // ---------- 引き継ぎ（コード化・合体） ----------
+  const CODE_HEAD = 'M30';
+  function toB64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
+  function fromB64(b64) { const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+  async function encodeState(st) {
+    const copy = JSON.parse(JSON.stringify(st));
+    for (const p of copy.profiles || []) delete p.seenQ; // 10ぷんの きろくは いらない
+    const bytes = new TextEncoder().encode(JSON.stringify(copy));
+    if (window.CompressionStream) {
+      const z = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+      return `${CODE_HEAD}Z:${toB64(z)}`;
+    }
+    return `${CODE_HEAD}J:${toB64(bytes)}`;
+  }
+  async function decodeState(text) {
+    const t = String(text || '').replace(/\s+/g, '');
+    let json;
+    if (t.startsWith('{')) json = t; // バックアップファイル（JSON）
+    else if (t.startsWith(`${CODE_HEAD}Z:`)) {
+      if (!window.DecompressionStream) throw new Error('この端末では読み込めません。バックアップファイルを使ってください');
+      const bytes = fromB64(t.slice(CODE_HEAD.length + 2));
+      json = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    } else if (t.startsWith(`${CODE_HEAD}J:`)) json = new TextDecoder().decode(fromB64(t.slice(CODE_HEAD.length + 2)));
+    else throw new Error('引き継ぎコードではないようです');
+    const st = JSON.parse(json);
+    if (!st || !Array.isArray(st.profiles)) throw new Error('記録が入っていません');
+    return st;
+  }
+  // 1人ぶんの 記録を 合体（どちらの 記録も 消さない）
+  function mergeProfile(a, b) {
+    let days = 0;
+    a.days = a.days || {};
+    for (const [k, d] of Object.entries(b.days || {})) {
+      const x = a.days[k];
+      if (!x) { a.days[k] = d; days++; }
+      else if ((d.sec || 0) > (x.sec || 0) || (d.lessons || 0) > (x.lessons || 0)) a.days[k] = d;
+    }
+    a.stars = Math.max(a.stars || 0, b.stars || 0);
+    a.xp = Math.max(a.xp || 0, b.xp || 0);
+    a.kinds = a.kinds || {};
+    for (const [k, v] of Object.entries(b.kinds || {})) if (!a.kinds[k] || v.q > a.kinds[k].q) a.kinds[k] = v;
+    if (b.level) { a.level = a.level || { ...b.level }; a.level.en = Math.max(a.level.en || 1, b.level.en || 1); a.level.math = Math.max(a.level.math || 1, b.level.math || 1); }
+    if (b.conv) {
+      if (!a.conv) a.conv = b.conv;
+      else {
+        a.conv.si = Math.max(a.conv.si || 0, b.conv.si || 0);
+        a.conv.cleared = { ...(b.conv.cleared || {}), ...(a.conv.cleared || {}) };
+        for (const [k, v] of Object.entries(b.conv.m || {})) a.conv.m[k] = Math.max(a.conv.m[k] || 0, v);
+      }
+    }
+    if (b.mathGoal && (!a.mathGoal || a.mathGoal.unit < 0)) a.mathGoal = b.mathGoal;
+    a.solved = { ...(b.solved || {}), ...(a.solved || {}) };
+    const have = new Set((a.mistakes || []).map((n) => n.q.key));
+    a.mistakes = (a.mistakes || []).concat((b.mistakes || []).filter((n) => !have.has(n.q.key) && !a.solved[n.q.key])).slice(-60);
+    return days;
+  }
+  function mergeState(inc) {
+    const res = [];
+    for (const b of inc.profiles || []) {
+      const a = S.profiles.find((x) => x.id === b.id) || S.profiles.find((x) => x.name === b.name);
+      if (a) res.push(`${a.name}：記録を合体しました（あたらしく ${mergeProfile(a, b)}日ぶん）`);
+      else { S.profiles.push(b); res.push(`${b.name}：追加しました`); }
+    }
+    if (!S.settings.pin && inc.settings && inc.settings.pin) S.settings.pin = inc.settings.pin;
+    S = migrate(S);
+    save();
+    return res;
   }
 
   // ---------- 日付 ----------
@@ -84,7 +154,15 @@
     { prev: 0, hard: 1, next: 0.9, ja: '上の学年の問題が9割' },
     { prev: 0, hard: 1, next: 1, ja: 'ぜんぶ上の学年の問題' },
   ];
-  const maxLevel = (p) => (p.grade >= 8 ? 6 : 15); // 小6は 上の学年が ないので 6まで
+  // 英語は 中3（TOP_EN）まで、算数は 小6までの 内容が 上限
+  const maxLevel = (p, subj) => (subj === 'math' ? (p.grade >= 8 ? 6 : 15) : p.grade >= TOP_EN ? 6 : 15);
+  // 小6いじょうの 英語：Lv7〜15で 中1→中3へ 少しずつ（Lv9=中1、Lv12=中2、Lv15=中3）
+  function enLevelLabel(p, n) {
+    if (p.grade < 8 || n <= 6) return LEVELS[n].ja;
+    const k = Math.ceil((n - 6) / 3), part = ((n - 7) % 3) + 1;
+    const to = Math.min(TOP_EN, p.grade + k), name = GRADES[to];
+    return part === 3 || to === TOP_EN && p.grade + k > TOP_EN ? `${name}の英語` : `${name}の英語が${part === 1 ? '3割' : '7割'}`;
+  }
   function levels(p) {
     if (!p.level) {
       // まえの しくみ（かんたん／ふつう）から ひきつぐ
@@ -110,8 +188,16 @@
     const cfg = LEVELS[Math.min(lvNo, LEVELS.length - 1)];
     const r = Math.random();
     let gg = g;
+    if (subj === 'en' && g >= 8 && lvNo > 6) {
+      // 小6いじょうの 英語は 中3まで どんどん
+      const k = Math.ceil((lvNo - 6) / 3), part = ((lvNo - 7) % 3 + 1) / 3;
+      gg = Math.min(TOP_EN, Math.random() < part ? g + k : g + k - 1);
+      return { g: gg, lv: gg > g ? (Math.random() < 0.5 ? 2 : 1) : 2, lvNo };
+    }
+    const top = subj === 'en' ? TOP_EN : 8;
     if (g > 0 && r < cfg.prev) gg = g - 1;
-    else if (g < 8 && r < cfg.next) gg = g + 1;
+    else if (g < top && r < cfg.next) gg = g + 1;
+    if (subj !== 'en') gg = Math.min(gg, 8);
     const lv = gg > g ? (Math.random() < 0.5 ? 2 : 1) : Math.random() < cfg.hard ? 2 : 1;
     return { g: gg, lv, lvNo };
   }
@@ -123,6 +209,7 @@
   function goals(p) {
     if (!p.conv) p.conv = { si: (window.CONV_START || [])[p.grade] || 0, target: STEPS.length - 1, due: '', m: {}, cleared: {} };
     if (!p.mathGoal) p.mathGoal = { unit: -1, target: 30, count: 0, done: '' };
+    while (p.conv.si < STEPS.length - 1 && STEPS[p.conv.si] && p.conv.cleared[STEPS[p.conv.si].id]) p.conv.si++;
     return p;
   }
   function stepProgress(p, si) {
@@ -309,8 +396,12 @@
           <button class="who-btn add-who"><span class="av">＋</span><span class="nm">ついか</span><span class="gr">おうちの人が とうろく</span></button>
         </div>
         <button class="btn big ghost go-timer">⏱ タイマー${timerRunning() ? ` <b class="tchip">${fmt(timerLeft())}</b>` : ''}</button>
-        <button class="link parent-link">⚙ おうちの人の せってい</button>
+        <div class="home-links">
+          <button class="link parent-link">⚙ おうちの人の せってい</button>
+          <button class="link transfer-link">📦 データの引き継ぎ</button>
+        </div>
       </section>`, 'home');
+    on('.transfer-link', 'click', () => pinGate(() => showTransfer(showHome), showHome));
     on('.go-timer', 'click', () => { SFX.tap(); showTimer(showHome); });
     on('.who-btn', 'click', (e) => { SFX.tap(); S.current = e.currentTarget.dataset.id; save(); showDash(); });
     on('.add-who', 'click', () => { SFX.tap(); pinGate(() => showProfileForm(null, false, showHome), showHome); });
@@ -891,11 +982,11 @@
       let lvMsg = '';
       if (quest.subj !== 'conv' && L.auto) {
         const k = quest.subj, before = L[k];
-        if (good >= Math.ceil(QN * 0.8)) L[k] = Math.min(maxLevel(p), L[k] + 1);
+        if (good >= Math.ceil(QN * 0.8)) L[k] = Math.min(maxLevel(p, k), L[k] + 1);
         else if (good <= Math.floor(QN * 0.4)) L[k] = Math.max(1, L[k] - 1);
-        if (L[k] > before) lvMsg = `⬆️ ${SUBJ_LABEL[k]} Lv.${before} → <b>Lv.${L[k]}</b> レベルアップ！`;
+        if (L[k] > before) lvMsg = `⬆️ ${SUBJ_LABEL[k]} Lv.${before} → <b>Lv.${L[k]}</b> レベルアップ！${k === 'en' && p.grade >= 8 && L[k] > 6 ? `<br><small>${enLevelLabel(p, L[k])}</small>` : ''}`;
         else if (L[k] < before) lvMsg = `${SUBJ_LABEL[k]}は Lv.${L[k]} で もういちど じっくり`;
-        else if (L[k] >= maxLevel(p)) lvMsg = `${SUBJ_LABEL[k]} Lv.${L[k]}（さいこう レベル）`;
+        else if (L[k] >= maxLevel(p, k)) lvMsg = `${SUBJ_LABEL[k]} Lv.${L[k]}（さいこう レベル）`;
       }
       const bonus = stars * 20;
       const plBefore = playerLevel(p.xp);
@@ -1342,10 +1433,9 @@
         </div>
 
         <div class="card">
-          <h3>データ</h3>
-          <p class="hint">記録はこの端末（ブラウザ）の中だけに保存されます。機種変更の前にバックアップしてください。</p>
-          <button class="btn sm export">バックアップを保存</button>
-          <label class="btn sm ghost">バックアップから復元<input type="file" accept="application/json" class="import" hidden></label>
+          <h3>データの引き継ぎ・バックアップ</h3>
+          <p class="hint">記録はこの端末（ブラウザ）の中だけに保存されます。iPadでは<b>ホーム画面のアイコンごとに記録が別々</b>なので、アイコンを追加しなおしたときや機種変更のときは「引き継ぎ」を使ってください。</p>
+          <button class="btn sm primary go-transfer">📦 データの引き継ぎ（コード・ファイル）</button>
           <button class="btn sm danger wipe">すべて削除</button>
         </div>
 
@@ -1387,24 +1477,7 @@
       S.settings.pin = v; save(); alert('暗証番号を保存しました'); showParent();
     });
     on('.clear-pin', 'click', () => { if (confirm('暗証番号を解除しますか？')) { S.settings.pin = ''; save(); showParent(); } });
-    on('.export', 'click', () => {
-      const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = `mainichi30-backup-${dkey()}.json`;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    });
-    on('.import', 'change', (e) => {
-      const f = e.target.files[0]; if (!f) return;
-      f.text().then((t) => {
-        try {
-          const s = JSON.parse(t);
-          if (!s || !Array.isArray(s.profiles)) throw new Error('形式が違います');
-          if (!confirm('今のデータを上書きして復元しますか？')) return;
-          S = migrate(s); save(); alert('復元しました'); showParent();
-        } catch (err) { alert('復元できませんでした：' + err.message); }
-      });
-    });
+    on('.go-transfer', 'click', () => showTransfer(showParent));
     on('.wipe', 'click', () => {
       if (confirm('すべてのお子さまの記録を削除します。よろしいですか？') && confirm('本当に削除しますか？（元に戻せません）')) {
         localStorage.removeItem(STORE_KEY); S = load(); showHome();
@@ -1412,16 +1485,82 @@
     });
   }
 
+  // =========================================================
+  //  データの 引き継ぎ
+  // =========================================================
+  function showTransfer(back) {
+    render(`
+      <section class="screen transfer">
+        <header class="topbar"><button class="icon-btn back" aria-label="もどる">←</button><h2>📦 データの引き継ぎ</h2><span></span></header>
+        <div class="card">
+          <h3>① まえの記録がある方で「引き継ぎコード」を作る</h3>
+          <p class="hint">記録が残っているアプリ（前にホーム画面に追加したアイコン・前に使っていたブラウザなど）でこの画面を開き、コードを作ってコピーします。</p>
+          <button class="btn primary make">🔑 引き継ぎコードを作る</button>
+          <div class="code-out hidden">
+            <textarea class="code" id="code-out" readonly rows="4"></textarea>
+            <div class="row-btns">
+              <button class="btn sm copy">📋 コピー</button>
+              <button class="btn sm ghost export">📄 ファイルに保存</button>
+            </div>
+            <p class="hint copied"></p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>② 新しい方で コードを貼り付ける</h3>
+          <p class="hint">記録を移したいアプリでこの画面を開き、コピーしたコードを貼り付けて「引き継ぐ」を押します。<b>今ある記録は消えずに合体</b>します（同じ子は名前で合わせます）。</p>
+          <textarea class="code" id="code-in" rows="4" placeholder="ここに引き継ぎコードを貼り付け"></textarea>
+          <div class="row-btns">
+            <button class="btn primary take">⬇ 引き継ぐ</button>
+            <label class="btn sm ghost">📄 ファイルから<input type="file" accept="application/json,.json,.txt" class="import" hidden></label>
+          </div>
+          <div class="result"></div>
+        </div>
+      </section>`, 'transfer');
+    on('.back', 'click', () => back());
+    on('.make', 'click', async () => {
+      if (!S.profiles.length) { $('.copied').textContent = 'この端末には記録がありません'; $('.code-out').classList.remove('hidden'); return; }
+      const code = await encodeState(S);
+      $('#code-out').value = code;
+      $('.code-out').classList.remove('hidden');
+      $('.copied').textContent = `${S.profiles.map((p) => p.name).join('・')} の記録（${Math.round(code.length / 1024)}KB）`;
+    });
+    on('.copy', 'click', async () => {
+      const ta = $('#code-out');
+      try { await navigator.clipboard.writeText(ta.value); $('.copied').textContent = '✅ コピーしました。新しい方のアプリで貼り付けてください'; }
+      catch (e) { ta.focus(); ta.select(); $('.copied').textContent = '選択しました。「コピー」を押してください'; }
+    });
+    on('.export', 'click', () => {
+      const blob = new Blob([JSON.stringify(S)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `mainichi-backup-${dkey()}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+    const doMerge = async (text) => {
+      const out = $('.result');
+      try {
+        const inc = await decodeState(text);
+        const res = mergeState(inc);
+        out.innerHTML = `<p class="ok-msg">✅ 引き継ぎました</p><ul>${res.map((r) => `<li>${esc(r)}</li>`).join('')}</ul><button class="btn primary to-home">アカウントを えらぶ</button>`;
+        out.querySelector('.to-home').addEventListener('click', showHome);
+        SFX.fanfare();
+      } catch (e) { out.innerHTML = `<p class="warn">引き継げませんでした：${esc(e.message)}</p>`; }
+    };
+    on('.take', 'click', () => doMerge($('#code-in').value));
+    on('.import', 'change', (e) => { const f = e.target.files[0]; if (f) f.text().then(doMerge); });
+  }
+
   function levelFormHTML(p, opts) {
     const L = levels(p);
-    const lvOpts = LEVELS.slice(1, maxLevel(p) + 1).map((x, i) => [i + 1, `Lv.${i + 1}：${x.ja}`]);
+    const enOpts = LEVELS.slice(1, maxLevel(p, 'en') + 1).map((x, i) => [i + 1, `Lv.${i + 1}：${enLevelLabel(p, i + 1)}`]);
+    const mathOpts = LEVELS.slice(1, maxLevel(p, 'math') + 1).map((x, i) => [i + 1, `Lv.${i + 1}：${x.ja}`]);
     return `<fieldset class="goal-set">
       <legend>📈 難しさ（レベル）</legend>
       <label class="switch-row"><input type="checkbox" name="lvAuto" ${L.auto ? 'checked' : ''}> クエストの結果で自動で上げ下げする</label>
-      <p class="hint">10問（年少〜年長は8問）で1クエスト。8割以上正解でその場でレベル+1、4割以下で−1。レベル7からは上の学年の問題が混ざり、Lv15は上の学年の問題だけになります（小6はLv6まで）。一度正解した問題は出さず、まちがえた問題だけクエストの最後と次の日以降にもう一度出ます。</p>
+      <p class="hint">10問（年少〜年長は8問）で1クエスト。8割以上正解でその場でレベル+1、4割以下で−1。レベル7からは上の学年の問題が混ざり、Lv15は上の学年の問題だけになります。<b>小6以上の英語はLv7から中学の内容になり、Lv9で中1、Lv12で中2、Lv15で中3まで進みます。</b>算数は小6の内容までです（小6以上の算数はLv6まで）。一度正解した問題は出さず、まちがえた問題だけクエストの最後と次の日以降にもう一度出ます。</p>
       <div class="two">
-        <label>英語のレベル<select name="lvEn">${opts(lvOpts, L.en)}</select></label>
-        <label>算数のレベル<select name="lvMath">${opts(lvOpts, L.math)}</select></label>
+        <label>英語のレベル<select name="lvEn">${opts(enOpts, L.en)}</select></label>
+        <label>算数のレベル<select name="lvMath">${opts(mathOpts, L.math)}</select></label>
       </div>
       <p class="hint">英語のレベルは単語・数・文法などの問題に使います（えいかいわロードはステップで進みます）。</p>
     </fieldset>`;
@@ -1467,7 +1606,8 @@
       <section class="screen pform">
         ${first ? `<h1 class="logo">まいにち<b>30</b>ぷん</h1>
           <p class="lead">英語を中心に算数もまぜて、10分のレッスンをがんばるたびに<br>10分のゲームタイムがもらえるアプリです。</p>
-          <p class="hint">はじめに、おうちの人がお子さまを登録してください。</p>` :
+          <p class="hint">はじめに、おうちの人がお子さまを登録してください。</p>
+          <button class="btn big ghost go-transfer">📦 まえの データを ひきつぐ</button>` :
           `<header class="topbar"><button class="icon-btn back" aria-label="もどる">←</button><h2>${p ? 'お子さまの設定' : 'お子さまを追加'}</h2><span></span></header>`}
         <form class="card form">
           <label>なまえ（ニックネーム）<input name="name" required maxlength="12" value="${esc(v.name)}" placeholder="例：たろう"></label>
@@ -1503,6 +1643,7 @@
       </section>`, 'pform');
 
     on('.back', 'click', after || showParent);
+    on('.go-transfer', 'click', () => showTransfer(showHome));
     on('.form', 'submit', (e) => {
       e.preventDefault();
       const f = new FormData(e.target);
@@ -1520,7 +1661,7 @@
       if (p) {
         const L = levels(t);
         L.auto = !!f.get('lvAuto');
-        L.en = Math.min(+f.get('lvEn'), maxLevel(t)); L.math = Math.min(+f.get('lvMath'), maxLevel(t));
+        L.en = Math.min(+f.get('lvEn'), maxLevel(t, 'en')); L.math = Math.min(+f.get('lvMath'), maxLevel(t, 'math'));
         const td = today(t); td.lvE = L.en; td.lvM = L.math; delete td.lvChange;
         goals(t);
         const c = t.conv, si = +f.get('convSi');
@@ -1565,7 +1706,7 @@
     const acc = (d, q, c) => (d[q] ? `${Math.round(((d[c] || 0) / d[q]) * 100)}%` : '−');
     return `<div class="card">
       <h3>📈 レベル（${L.auto ? 'クエストで自動調整' : '固定'}）</h3>
-      <p>英語 <b>Lv.${L.en}</b>（${LEVELS[L.en].ja}）${first ? `　最近14日で ${first.lvE}→${L.en}` : ''}<br>
+      <p>英語 <b>Lv.${L.en}</b>（${enLevelLabel(p, L.en)}）${first ? `　最近14日で ${first.lvE}→${L.en}` : ''}<br>
       算数 <b>Lv.${L.math}</b>（${LEVELS[L.math].ja}）${first ? `　最近14日で ${first.lvM}→${L.math}` : ''}</p>
       ${days.length ? `<div class="lv-table-wrap"><table class="kt lv-table"><tr><th>日</th><th>英語Lv</th><th>正解率</th><th>算数Lv</th><th>正解率</th></tr>
         ${days.map(([k, d]) => `<tr><td>${+k.slice(5, 7)}/${+k.slice(8)}</td><td>${d.lvE}</td><td>${acc(d, 'qe', 'ce')}</td><td>${d.lvM}</td><td>${acc(d, 'qm', 'cm')}</td></tr>`).join('')}</table></div>` : ''}
@@ -1637,6 +1778,9 @@
   }
 
   // 起動
+  // ブラウザに「この記録は消さないで」と おねがい（ホーム画面に 追加していない ときの 自動削除を ふせぐ）
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) { /* なし */ }
+
   // さいしょは いつも アカウントを えらぶ 画面から
   showHome();
 })();

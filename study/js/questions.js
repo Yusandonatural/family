@@ -41,6 +41,8 @@ window.Questions = (function () {
   const ja = (text) => ({ text, lang: 'ja' });
   const nChoices = (g) => (g <= 0 ? 3 : 4);
   const wordsFor = (g, filter) => D.words.filter((w) => w.g <= g && (!filter || filter(w)));
+  // 中学生の 単語問題は 8わり 中学の 単語から
+  const vocabFor = (g) => (g >= 9 && Math.random() < 0.8 ? wordsFor(g, (w) => w.g >= 9) : wordsFor(g));
   const emojiRow = (e, k, cls = '') => `<div class="emoji-row ${cls}">${Array.from({ length: k }, () => `<span>${e}</span>`).join('')}</div>`;
   const dots = (k) => `<span class="dots">${'●'.repeat(k)}</span>`;
   const numLabel = (n, g) => (g <= 1 && n <= 10 ? `<b class="big">${n}</b>${dots(n)}` : `<b class="big">${n}</b>`);
@@ -226,7 +228,7 @@ window.Questions = (function () {
 
   // え → えいご
   E.picToWord = ({ g }) => {
-    const pool = wordsFor(g);
+    const pool = wordsFor(g, (w) => w.emoji);
     const t = pick(pool);
     const same = pool.filter((w) => w.cat === t.cat);
     const choices = withDistractors(t, same.length >= 4 ? same : pool, 4, (w) => w.en);
@@ -242,7 +244,7 @@ window.Questions = (function () {
 
   // えいご → いみ
   E.wordToJa = ({ g }) => {
-    const pool = wordsFor(g);
+    const pool = vocabFor(g);
     const t = pick(pool);
     const choices = withDistractors(t, pool, 4, (w) => w.ja);
     return {
@@ -257,7 +259,7 @@ window.Questions = (function () {
 
   // いみ → えいご
   E.jaToWord = ({ g }) => {
-    const pool = wordsFor(g);
+    const pool = vocabFor(g);
     const t = pick(pool);
     const choices = withDistractors(t, pool, 4, (w) => w.en);
     return {
@@ -282,7 +284,7 @@ window.Questions = (function () {
     return {
       subj: 'en', kind: 'つづり',
       prompt: 'ぬけている もじは どれ？',
-      visual: `<div class="emoji">${t.emoji}</div><div class="seq en">${shown}</div>`,
+      visual: `${t.emoji ? `<div class="emoji">${t.emoji}</div>` : `<div class="hint-ja">（${esc(t.ja)}）</div>`}<div class="seq en">${shown}</div>`,
       say: [en(t.en)],
       choices: choices.map((c) => ({ html: `<span class="letter">${c}</span>`, value: c })),
       answer: ch, reveal: [en(t.en)],
@@ -526,6 +528,58 @@ window.Questions = (function () {
       choices: choices.map((x) => ({ html: `<span class="en">${x.en}</span>`, value: x.en, say: en(x.en) })),
       answer: t.en, reveal: [en(t.en)],
       explain: `${t.ja} ＝ <b>${t.en}</b>`,
+    };
+  };
+
+  // ---------- 中学英語（中1〜中3） ----------
+  const JHG = () => ((window.JH && window.JH.grammar) || []);
+  const jhPool = (g) => { const all = JHG(); const x = all.filter((it) => it.g === Math.min(11, Math.max(9, g))); return x.length ? x : all; };
+  const fullOf = (it) => it.s.replace('___', it.a);
+  // 文法の あなうめ
+  E.grammar = ({ g }) => {
+    const t = pick(jhPool(g));
+    const choices = shuffle([t.a, ...t.d]);
+    return {
+      subj: 'en', kind: `文法（中${Math.min(11, Math.max(9, g)) - 8}）`,
+      prompt: `<span class="en">${esc(t.s).replace('___', '<span class="blank">＿＿＿</span>')}</span><br><small>（${esc(t.ja)}）</small>`,
+      choices: choices.map((c) => ({ html: `<span class="en">${esc(c)}</span>`, value: c })),
+      answer: t.a, reveal: [en(fullOf(t))],
+      explain: `<b>${esc(fullOf(t))}</b><br>${esc(t.ja)}`,
+    };
+  };
+  // 英文を きいて 意味を えらぶ
+  E.listenSentence = ({ g }) => {
+    const pool = jhPool(g);
+    const t = pick(pool);
+    const choices = withDistractors(t, pool, 4, (x) => x.ja);
+    return {
+      subj: 'en', kind: '英文の ききとり', listen: true,
+      prompt: '英語を きいて、意味を えらぼう',
+      say: [en(fullOf(t))],
+      choices: choices.map((x) => ({ html: `<span class="sm">${esc(x.ja)}</span>`, value: x.ja })),
+      answer: t.ja, reveal: [en(fullOf(t))],
+      explain: `<b>${esc(fullOf(t))}</b><br>${esc(t.ja)}`,
+    };
+  };
+  // 日本語に あう 英文（ならびかえ）
+  E.jhOrder = ({ g }) => {
+    const pool = jhPool(g).filter((it) => !/[—?]/.test(it.s));
+    const t = pick(pool);
+    const full = fullOf(t);
+    const mark = /[.!]$/.test(full) ? full.slice(-1) : '';
+    const words = full.replace(/[.!]$/, '').split(' ');
+    // 文頭で 大文字に なっているだけの ことばは 小文字に（Tom・English などの 名前は そのまま）
+    const LOWER = ['You', 'He', 'She', 'It', 'We', 'They', 'This', 'That', 'There', 'My', 'The', 'Do', 'Does', 'Did', 'What', 'Who', 'How', 'Where', 'When', 'Can', 'Shall', 'Have', 'If', 'Look', 'Wash', 'Could', 'Would', 'May', 'Our', 'Your', 'His', 'Her', 'A', 'An'];
+    const toks = words.map((w, i) => (i === 0 && LOWER.includes(w) ? w[0].toLowerCase() + w.slice(1) : w));
+    const build = (a) => { const b = a.slice(); b[0] = b[0][0].toUpperCase() + b[0].slice(1); return b.join(' ') + mark; };
+    const wrong = new Set();
+    for (let k = 0; k < 80 && wrong.size < 3; k++) { const c = build(shuffle(toks)); if (c !== full) wrong.add(c); }
+    return {
+      subj: 'en', kind: '英文の ならびかえ',
+      prompt: `「${esc(t.ja)}」<br>ただしい 英文は どれ？`,
+      choices: shuffle([full, ...wrong]).map((x) => ({ html: `<span class="en sm">${esc(x)}</span>`, value: x })),
+      answer: full, reveal: [en(full)],
+      explain: `<b>${esc(full)}</b>`,
     };
   };
 
@@ -846,6 +900,10 @@ window.Questions = (function () {
     6: { en: [[E.picToWord, 3], [E.wordToJa, 3], [E.jaToWord, 2], [E.spell, 3], [E.days, 2], [E.clock, 2], [E.mathInEnglish, 2], [E.qa, 2], [E.numberWord, 1], [E.sentence, 1]], math: [[M.div2, 3], [M.mul2x2, 3], [M.areaRect, 2], [M.decAdd, 2], [M.round, 1], [M.fracSame, 2]] },
     7: { en: [[E.wordToJa, 3], [E.jaToWord, 3], [E.spell, 3], [E.months, 2], [E.ordinals, 2], [E.qa, 3], [E.sentence, 2], [E.subjects, 1], [E.clock, 1], [E.mathInEnglish, 1]], math: [[M.decMul, 3], [M.percent, 3], [M.avg, 2], [M.triangle, 2], [M.fracAdd, 3], [M.volume, 1]] },
     8: { en: [[E.jaToWord, 3], [E.wordToJa, 2], [E.spell, 3], [E.qa, 3], [E.sentence, 3], [E.past, 3], [E.wordOrder, 2], [E.country, 2], [E.months, 1], [E.ordinals, 1]], math: [[M.fracMulDiv, 4], [M.ratio, 3], [M.speed, 3], [M.circle, 2], [M.proportion, 2], [M.percent, 1]] },
+    // 中1〜中3（英語）。算数は 小6の 内容を つづける
+    9: { en: [[E.grammar, 6], [E.listenSentence, 3], [E.jhOrder, 2], [E.wordToJa, 3], [E.jaToWord, 3], [E.spell, 1], [E.past, 2], [E.qa, 1]] },
+    10: { en: [[E.grammar, 6], [E.listenSentence, 3], [E.jhOrder, 3], [E.wordToJa, 3], [E.jaToWord, 3], [E.spell, 1], [E.past, 1]] },
+    11: { en: [[E.grammar, 6], [E.listenSentence, 3], [E.jhOrder, 3], [E.wordToJa, 3], [E.jaToWord, 3], [E.spell, 1]] },
   };
 
   // 算数の 単元名（保護者の「算数の目標」で えらぶ）
@@ -862,6 +920,8 @@ window.Questions = (function () {
   };
   const nameOf = (fn) => { for (const k in M) if (M[k] === fn) return MATH_NAMES[k] || k; return ''; };
   const mathUnits = (g) => (PLAN[g] || PLAN[0]).math.map(([fn]) => nameOf(fn));
+
+  for (const g of [9, 10, 11]) PLAN[g].math = PLAN[8].math;
 
   function weightedPick(list, avoid) {
     const cand = list.filter(([f]) => f !== avoid);

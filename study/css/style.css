@@ -647,3 +647,11 @@ hr { border: 0; border-top: 1px dashed var(--line); margin: 12px 0; }
 .add-who { background: transparent; box-shadow: none; border: 3px dashed #e6d7c2; }
 .add-who .av { color: var(--sub); font-weight: 800; }
 .me small u { text-decoration: none; color: var(--en); font-weight: 800; }
+
+/* 引き継ぎ */
+.transfer .code { width: 100%; font: 12px/1.4 ui-monospace, Menlo, monospace; border: 2px solid var(--line); border-radius: 12px; padding: 10px; background: #fffdf8; color: var(--ink); resize: vertical; word-break: break-all; user-select: text; -webkit-user-select: text; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
+.ok-msg { color: var(--ok); font-weight: 800; }
+.result ul { padding-left: 1.2em; }
+.home-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; }
+.hint-ja { color: var(--sub); font-weight: 800; }
