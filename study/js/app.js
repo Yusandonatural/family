@@ -207,8 +207,18 @@
   const CONV_SHARE = 0.6; // えいごの もんだいの うち、えいかいわロードから だす わりあい
   const MASTER = 2;       // 1つの ひょうげんを 何回 せいかいしたら「おぼえた」か
   function goals(p) {
-    if (!p.conv) p.conv = { si: (window.CONV_START || [])[p.grade] || 0, target: STEPS.length - 1, due: '', m: {}, cleared: {} };
+    if (!p.conv) p.conv = { si: (window.CONV_START || [])[p.grade] || 0, target: STEPS.length - 1, due: '', m: {}, cleared: {}, v2: true };
     if (!p.mathGoal) p.mathGoal = { unit: -1, target: 30, count: 0, done: '' };
+    // 中学ステップを ふやしたとき：まえの番号から おなじ内容の ステップへ
+    if (!p.conv.v2) {
+      const OLD = window.CONV_OLD_JH || [];
+      if (p.conv.si >= 15 && OLD[p.conv.si - 15]) p.conv.si = Math.max(0, STEPS.findIndex((st) => st.id === OLD[p.conv.si - 15]));
+      if (p.conv.target >= 15 && OLD[p.conv.target - 15]) p.conv.target = Math.max(0, STEPS.findIndex((st) => st.id === OLD[p.conv.target - 15]));
+      else if (p.conv.target >= 15) p.conv.target = STEPS.length - 1;
+      p.conv.v2 = true;
+      save();
+    }
+    if (p.conv.target >= STEPS.length) p.conv.target = STEPS.length - 1;
     while (p.conv.si < STEPS.length - 1 && STEPS[p.conv.si] && p.conv.cleared[STEPS[p.conv.si].id]) p.conv.si++;
     return p;
   }
