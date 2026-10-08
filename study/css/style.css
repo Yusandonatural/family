@@ -633,6 +633,8 @@ hr { border: 0; border-top: 1px dashed var(--line); margin: 12px 0; }
 .q-stars span.on:nth-child(3) { animation-delay: .3s; }
 .q-score { margin: 0; font-weight: 800; font-size: 1.2rem; }
 .q-xp { margin: 0; font-weight: 800; color: #7e57c2; font-size: 1.3rem; }
+.q-kp { margin: 4px 0 0; font-weight: 800; color: #b7791f; }
+.q-kp small { font-weight: 600; margin-left: 4px; }
 .q-lv { margin: 0; background: #fff1d6; border-radius: 12px; padding: 8px; font-weight: 800; }
 .q-pl { margin: 0; color: var(--pri-d); font-weight: 800; }
 .lv-chip.quest { background: #f3f0fb; color: #5e35b1; }

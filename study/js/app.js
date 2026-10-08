@@ -190,6 +190,16 @@
   const xpNeed = (n) => 50 * n * (n + 1); // Lv.n → n+1 に ひつような るいけい XP
   function playerLevel(xp) { let n = 1; while (xp >= xpNeed(n)) n++; return n; }
 
+  // まなびポイント（百人一首・日本史などと共通。/idea-/kids/points.js）。読めないときは 何もしない
+  function sharePoints(p, points, reason, opts) {
+    const KP = window.KidsPoints;
+    if (!KP) return null;
+    try {
+      if (!p.kpKid || !KP.kids().some((k) => k.id === p.kpKid)) p.kpKid = KP.ensureKid(p.name, p.avatar).id;
+      return KP.award(Object.assign({ app: 'study', points, reason, kid: p.kpKid }, opts));
+    } catch (e) { console.warn('KidsPoints', e); return null; }
+  }
+
   // レベルから、この もんだいの 段階（学年）と むずかしさを きめる
   function pickGradeLv(p, subj, sessionDrop) {
     const L = levels(p);
@@ -1020,6 +1030,7 @@
       const plAfter = playerLevel(p.xp);
       (d.quests = d.quests || []).push({ s: quest.subj, st: stars });
       dailyLevelUp(p);
+      const kp = sharePoints(p, good + 10 + (good >= Math.ceil(QN * 0.8) ? 5 : 0), `${SUBJ_LABEL[quest.subj] || ''}クエスト ${good}/${QN}`, { toast: false });
       save(); updateBar();
       const doneLesson = rewardable && d.lessonSec >= target;
       if (stars === 3) SFX.fanfare(); else SFX.ok();
@@ -1031,6 +1042,7 @@
         <div class="q-stars">${'<span class="on">★</span>'.repeat(stars)}${'<span>★</span>'.repeat(3 - stars)}</div>
         <p class="q-score">${good} / ${QN} せいかい</p>
         <p class="q-xp">✨ +${quest.xp + bonus} XP</p>
+        ${kp && kp.added ? `<p class="q-kp">⭐ まなびポイント +${kp.added + kp.bonus}<small>（ぜんぶで ${kp.balance}）</small></p>` : ''}
         ${lvMsg ? `<p class="q-lv">${lvMsg}</p>` : ''}
         ${plAfter > plBefore ? `<p class="q-pl">🏆 プレイヤー Lv.${plAfter} に なった！</p>` : ''}
         <button class="btn big primary q-next">${doneLesson ? '🎉 レッスン クリア！' : '⚔️ つぎの クエスト'}</button>
@@ -1067,6 +1079,7 @@
           if (si < STEPS.length - 1) c.si = si + 1;
           msg = { icon: STEPS[si].icon, title: `ステップ${si + 1} クリア！`, body: `「${STEPS[si].title}」ように なったね！`, next: si < STEPS.length - 1 ? `つぎは ステップ${si + 2}「${STEPS[si + 1].title}」` : '🏆 えいかいわロード ぜんぶ クリア！', say: 'Great job! You did it!' };
           if (window.trackConversion) window.trackConversion('app_action_complete', { action: 'conv_step_clear', step: si + 1 });
+          sharePoints(p, 30, `えいかいわ ステップ${si + 1} クリア`, { key: `conv-${STEPS[si].id}` });
         }
       }
     }
