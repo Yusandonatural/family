@@ -1,5 +1,5 @@
 /* オフラインでも使えるように アプリ本体を キャッシュ（更新時は VERSION を上げる） */
-const VERSION = 'study-v15';
+const VERSION = 'study-v16';
 const ASSETS = [
   './', 'index.html', 'css/style.css', 'js/data.js', 'js/jh.js', 'js/conversation.js', 'js/questions.js', 'js/app.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
