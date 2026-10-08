@@ -76,6 +76,8 @@ small { font-size: .75em; color: var(--sub); }
 .who-btn .nm { font-size: 1.2rem; font-weight: 800; }
 .who-btn .gr, .who-btn .st { font-size: .8rem; color: var(--sub); }
 .home .parent-link { align-self: center; }
+.home .go-apps { display: block; max-width: 360px; width: 100%; align-self: center; text-align: center; text-decoration: none; color: inherit; box-sizing: border-box; line-height: 1.3; }
+.home .go-apps small { display: block; margin-top: 4px; font-size: .8rem; color: var(--sub); font-weight: 600; }
 
 /* ---------- ダッシュボード ---------- */
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
