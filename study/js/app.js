@@ -416,6 +416,7 @@
           <button class="who-btn add-who"><span class="av">＋</span><span class="nm">ついか</span><span class="gr">おうちの人が とうろく</span></button>
         </div>
         <button class="btn big ghost go-timer">⏱ タイマー${timerRunning() ? ` <b class="tchip">${fmt(timerLeft())}</b>` : ''}</button>
+        <a class="btn big ghost go-apps" href="https://yusandonatural.github.io/idea-/kids/">🎒 ほかの アプリ<small>日本史・世界史・地理・百人一首</small></a>
         <div class="home-links">
           <button class="link parent-link">⚙ おうちの人の せってい</button>
           <button class="link transfer-link">📦 データの引き継ぎ</button>
