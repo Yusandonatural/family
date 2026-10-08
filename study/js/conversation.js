@@ -290,10 +290,61 @@ window.CONV_STEPS = [
       { q: 'What are you good at?', qja: 'なにが とくい？', a: "I'm good at drawing.", aja: 'えを かくのが とくいです', e: '🎨' },
     ],
   },
-  // ===== ここから 中学レベル（中1〜中3） =====
+  // ===== ここから 中学レベル（中1〜中3・30ステップ） =====
+  // ---------- 中1 ----------
   {
-    id: 'third', g: 8, icon: '👨‍👩‍👧',
-    title: 'ほかの人に ついて はなせる',
+    id: 'j1_intro', g: 8, icon: '🙋', title: 'じこしょうかいが できる（中1）',
+    cando: 'be動詞を使って、名前・出身・年齢・好きなことを言える／聞ける（中1）',
+    items: [
+      { en: 'I am from Japan.', ja: 'わたしは日本出身です', e: '🗾', b: 'from' },
+      { en: 'I am twelve years old.', ja: 'わたしは12歳です', e: '🎂', b: 'years' },
+      { en: 'Are you a student?', ja: 'あなたは生徒ですか', e: '🎒', b: 'Are' },
+      { en: 'Yes, I am.', ja: 'はい、そうです', e: '👍', b: 'am' },
+      { en: 'I am not a teacher.', ja: 'わたしは先生ではありません', e: '🙅', b: 'not' },
+      { en: 'I am interested in music.', ja: 'わたしは音楽に興味があります', e: '🎵', b: 'interested' },
+    ],
+    talk: [
+      { q: 'Where are you from?', qja: 'どこの出身？', a: 'I am from Osaka.', aja: '大阪出身です', e: '🏯' },
+      { q: 'Are you a new student?', qja: '新入生ですか？', a: 'Yes, I am. Nice to meet you.', aja: 'はい。よろしくお願いします', e: '🤝' },
+      { q: 'How old are you?', qja: '何歳ですか？', a: 'I am twelve.', aja: '12歳です', e: '🎂' },
+    ],
+  },
+  {
+    id: 'j1_this', g: 8, icon: '📦', title: 'これ・あれ・だれの が いえる',
+    cando: 'This / That / Whose / my / your などで、ものや持ち主について話せる（中1）',
+    items: [
+      { en: 'This is my new bike.', ja: 'これはわたしの新しい自転車です', e: '🚲', b: 'This' },
+      { en: 'That is our school.', ja: 'あれはわたしたちの学校です', e: '🏫', b: 'That' },
+      { en: 'Whose notebook is this?', ja: 'これはだれのノートですか', e: '📓', b: 'Whose' },
+      { en: 'It is mine.', ja: 'それはわたしのです', e: '🙋', b: 'mine' },
+      { en: 'Is that your dog?', ja: 'あれはあなたの犬ですか', e: '🐶', b: 'your' },
+      { en: 'No, it is not. It is hers.', ja: 'いいえ、彼女のです', e: '👧', b: 'hers' },
+    ],
+    talk: [
+      { q: 'Whose umbrella is this?', qja: 'これはだれのかさ？', a: 'It is mine. Thank you.', aja: 'わたしのです。ありがとう', e: '☂️' },
+      { q: 'Is this your pencil?', qja: 'これはあなたのえんぴつ？', a: 'No, it is not. It is his.', aja: 'いいえ、彼のです', e: '✏️' },
+      { q: 'What is that building?', qja: 'あの建物は何？', a: 'That is the city library.', aja: 'あれは市立図書館です', e: '🏛️' },
+    ],
+  },
+  {
+    id: 'j1_do', g: 8, icon: '⚽', title: 'いつも することを はなせる',
+    cando: '一般動詞（play / have / go）と Do you 〜? で、ふだんすることを話せる（中1）',
+    items: [
+      { en: 'I play soccer after school.', ja: '放課後にサッカーをします', e: '⚽', b: 'after' },
+      { en: 'I have two cats.', ja: 'ねこを2ひき飼っています', e: '🐱', b: 'have' },
+      { en: 'Do you walk to school?', ja: '歩いて学校に行きますか', e: '🚶', b: 'walk' },
+      { en: 'No, I do not. I take the bus.', ja: 'いいえ、バスに乗ります', e: '🚌', b: 'take' },
+      { en: 'We study English every day.', ja: 'わたしたちは毎日英語を勉強します', e: '📚', b: 'every' },
+      { en: 'What do you do on Sundays?', ja: '日曜日は何をしますか', e: '📅', b: 'Sundays' },
+    ],
+    talk: [
+      { q: 'Do you play any sports?', qja: '何かスポーツをする？', a: 'Yes, I do. I play tennis.', aja: 'うん、テニスをするよ', e: '🎾' },
+      { q: 'What do you do on Sundays?', qja: '日曜日は何をするの？', a: 'I usually watch movies at home.', aja: 'たいてい家で映画を見るよ', e: '🎬' },
+      { q: 'How do you go to school?', qja: 'どうやって学校に行くの？', a: 'I go to school by bike.', aja: '自転車で行くよ', e: '🚲' },
+    ],
+  },
+  {
+    id: 'third', g: 8, icon: '👨‍👩‍👧', title: 'ほかの人に ついて はなせる',
     cando: '家族や友だちについて、三人称単数（plays / likes / Does he 〜?）を使って話せる（中1）',
     items: [
       { en: 'My brother plays baseball.', ja: '兄（弟）は野球をします', e: '⚾', b: 'plays' },
@@ -310,26 +361,110 @@ window.CONV_STEPS = [
     ],
   },
   {
-    id: 'now', g: 8, icon: '📱',
-    title: 'いま していることを はなせる',
-    cando: '現在進行形・過去形を使って「今〜している」「〜した」を伝えられる（中1）',
+    id: 'j1_when', g: 8, icon: '🕒', title: 'いつ・なんじ・どのくらい が きける',
+    cando: 'What time / When / How often / How long などの質問と答えができる（中1）',
+    items: [
+      { en: 'What time do you get up?', ja: '何時に起きますか', e: '⏰', b: 'time' },
+      { en: 'I get up at six thirty.', ja: '6時半に起きます', e: '🌅', b: 'thirty' },
+      { en: 'When is the school festival?', ja: '学校祭はいつですか', e: '🎪', b: 'When' },
+      { en: 'It is in October.', ja: '10月です', e: '🍂', b: 'October' },
+      { en: 'How often do you practice?', ja: 'どのくらいの回数練習しますか', e: '🔁', b: 'often' },
+      { en: 'Three times a week.', ja: '週に3回です', e: '3️⃣', b: 'times' },
+    ],
+    talk: [
+      { q: 'What time does school start?', qja: '学校は何時に始まる？', a: 'It starts at eight thirty.', aja: '8時半に始まるよ', e: '🏫' },
+      { q: 'How often do you go to the library?', qja: 'どのくらい図書館に行く？', a: 'About once a week.', aja: '週に1回くらい', e: '📚' },
+      { q: 'When is your birthday?', qja: 'たんじょうびはいつ？', a: 'It is July 20th.', aja: '7月20日です', e: '🎉' },
+    ],
+  },
+  {
+    id: 'j1_can', g: 8, icon: '🎹', title: 'できること・さそいが いえる（中1）',
+    cando: 'can / Can you 〜? / Let\'s 〜 / How about 〜? で、できることを言ったり誘ったりできる（中1）',
+    items: [
+      { en: 'I can play the piano a little.', ja: 'ピアノが少しひけます', e: '🎹', b: 'little' },
+      { en: 'Can you speak Chinese?', ja: '中国語が話せますか', e: '🇨🇳', b: 'speak' },
+      { en: 'She can run very fast.', ja: '彼女はとても速く走れます', e: '🏃', b: 'fast' },
+      { en: "Let's go to the park together.", ja: 'いっしょに公園に行こう', e: '🌳', b: 'together' },
+      { en: 'How about this Sunday?', ja: '今度の日曜日はどう？', e: '📅', b: 'about' },
+      { en: 'Sounds good!', ja: 'いいね！', e: '👍', b: 'Sounds' },
+    ],
+    talk: [
+      { q: "Let's play basketball after school.", qja: '放課後バスケをしよう', a: 'Sounds good! See you at four.', aja: 'いいね！4時にね', e: '🏀' },
+      { q: 'Can your brother drive a car?', qja: 'お兄さんは車を運転できる？', a: 'Yes, he can.', aja: 'うん、できるよ', e: '🚗' },
+      { q: 'How about going to the movies?', qja: '映画に行くのはどう？', a: 'Sorry, I am busy today.', aja: 'ごめん、今日はいそがしいんだ', e: '😅' },
+    ],
+  },
+  {
+    id: 'now', g: 8, icon: '📱', title: 'いま していることを はなせる',
+    cando: '現在進行形を使って「今〜している」を伝えたり、たずねたりできる（中1）',
     items: [
       { en: "I'm reading a book now.", ja: '今、本を読んでいます', e: '📖', b: 'reading' },
       { en: 'She is cooking dinner.', ja: '彼女は夕食を作っています', e: '🍳', b: 'cooking' },
       { en: 'They are playing in the park.', ja: 'かれらは公園で遊んでいます', e: '🛝', b: 'playing' },
-      { en: 'I watched a movie last night.', ja: 'きのうの夜、映画を見ました', e: '🎬', b: 'watched' },
-      { en: 'We had a good time.', ja: '楽しい時間をすごしました', e: '😊', b: 'had' },
-      { en: 'Are you busy now?', ja: '今、いそがしいですか', e: '⏰', b: 'busy' },
+      { en: 'What are you looking for?', ja: '何をさがしているの', e: '🔍', b: 'looking' },
+      { en: 'I am not sleeping. I am thinking.', ja: 'ねていません。考えています', e: '🤔', b: 'thinking' },
+      { en: 'Are you listening to me?', ja: 'わたしの話を聞いてる？', e: '👂', b: 'listening' },
     ],
     talk: [
       { q: 'What are you doing?', qja: '何をしているの？', a: "I'm doing my homework.", aja: '宿題をしているよ', e: '📝' },
       { q: 'Is he sleeping?', qja: '彼はねているの？', a: "No, he isn't. He's studying.", aja: 'いいえ、勉強しているよ', e: '📚' },
-      { q: 'What did you do yesterday?', qja: 'きのうは何をしたの？', a: 'I played tennis with my friends.', aja: '友だちとテニスをしたよ', e: '🎾' },
+      { q: 'Where is Mom?', qja: 'お母さんはどこ？', a: 'She is talking on the phone.', aja: '電話で話しているよ', e: '📞' },
     ],
   },
   {
-    id: 'plan', g: 9, icon: '📅',
-    title: 'よていや みらいの ことを はなせる',
+    id: 'j1_past', g: 8, icon: '📸', title: 'きのう したことを くわしく はなせる',
+    cando: '過去形（規則・不規則）と Did you 〜? で、したことや感想を話せる（中1）',
+    items: [
+      { en: 'I visited my grandparents last week.', ja: '先週、祖父母を訪ねました', e: '👴', b: 'visited' },
+      { en: 'We watched a soccer game on TV.', ja: 'テレビでサッカーの試合を見ました', e: '📺', b: 'watched' },
+      { en: 'Did you enjoy the party?', ja: 'パーティーは楽しかった？', e: '🎉', b: 'Did' },
+      { en: 'I did not go out yesterday.', ja: 'きのうは出かけませんでした', e: '🏠', b: 'not' },
+      { en: 'She bought a new bag.', ja: '彼女は新しいかばんを買いました', e: '👜', b: 'bought' },
+      { en: 'It was really exciting.', ja: '本当にわくわくしました', e: '🤩', b: 'exciting' },
+    ],
+    talk: [
+      { q: 'What did you do last weekend?', qja: '先週末は何をした？', a: 'I went camping with my family.', aja: '家族とキャンプに行ったよ', e: '🏕️' },
+      { q: 'Did you finish the book?', qja: '本は読み終わった？', a: 'Yes, I did. It was great.', aja: 'うん。すごくよかった', e: '📖' },
+      { q: 'How was the test?', qja: 'テストはどうだった？', a: 'It was difficult, but I did my best.', aja: '難しかったけど、がんばったよ', e: '📝' },
+    ],
+  },
+  {
+    id: 'j1_where', g: 8, icon: '🗺️', title: 'ばしょと みちあんないが できる（中1）',
+    cando: 'next to / in front of / between などの場所の言い方と、道案内ができる（中1）',
+    items: [
+      { en: 'The post office is next to the bank.', ja: '郵便局は銀行のとなりです', e: '🏤', b: 'next' },
+      { en: 'There is a cafe in front of the station.', ja: '駅の前にカフェがあります', e: '☕', b: 'front' },
+      { en: 'My house is between the park and the school.', ja: 'わたしの家は公園と学校の間です', e: '🏠', b: 'between' },
+      { en: 'How can I get to the museum?', ja: '博物館へはどう行けばいいですか', e: '🏛️', b: 'get' },
+      { en: 'Go straight and turn right at the corner.', ja: 'まっすぐ行って、角を右に曲がってください', e: '➡️', b: 'corner' },
+      { en: 'You can see it on your left.', ja: '左手に見えます', e: '👈', b: 'left' },
+    ],
+    talk: [
+      { q: 'Excuse me. Where is the hospital?', qja: 'すみません、病院はどこですか？', a: 'It is next to the library.', aja: '図書館のとなりです', e: '🏥' },
+      { q: 'How can I get to the station?', qja: '駅へはどう行けばいい？', a: 'Go straight and turn left at the second corner.', aja: 'まっすぐ行って、2つ目の角を左です', e: '⬅️' },
+      { q: 'Is there a bank near here?', qja: 'この近くに銀行はある？', a: 'Yes. It is in front of the post office.', aja: 'うん、郵便局の前だよ', e: '🏦' },
+    ],
+  },
+  {
+    id: 'j1_please', g: 8, icon: '🙏', title: 'ていねいな おねがいと へんじが できる',
+    cando: 'Please / Don\'t / Can you 〜? / Can I 〜? で、お願いしたり許可を求めたりできる（中1）',
+    items: [
+      { en: 'Please open the window.', ja: '窓を開けてください', e: '🪟', b: 'open' },
+      { en: "Don't touch that.", ja: 'それにさわらないで', e: '🚫', b: "Don't" },
+      { en: 'Can you pass me the salt?', ja: '塩を取ってくれる？', e: '🧂', b: 'pass' },
+      { en: 'Can I borrow your eraser?', ja: '消しゴムを借りてもいい？', e: '🧽', b: 'borrow' },
+      { en: 'Of course. Here you are.', ja: 'もちろん。はい、どうぞ', e: '🤲', b: 'course' },
+      { en: "I'm sorry, but I can't.", ja: 'ごめん、できないんだ', e: '😔', b: 'but' },
+    ],
+    talk: [
+      { q: 'Can I use your phone?', qja: '電話を借りてもいい？', a: 'Of course. Here you are.', aja: 'もちろん。はい、どうぞ', e: '📱' },
+      { q: 'Can you help me with my homework?', qja: '宿題を手伝ってくれる？', a: "Sure. Let's do it together.", aja: 'いいよ。いっしょにやろう', e: '📝' },
+      { q: 'Please be quiet in the library.', qja: '図書館では静かにしてください', a: "I'm sorry. I will.", aja: 'ごめんなさい。そうします', e: '🤫' },
+    ],
+  },
+  // ---------- 中2 ----------
+  {
+    id: 'plan', g: 9, icon: '📅', title: 'よていや みらいの ことを はなせる',
     cando: 'will / be going to を使って、予定や未来のことを話せる（中2）',
     items: [
       { en: "I'm going to visit my grandma.", ja: 'おばあちゃんの家に行く予定です', e: '👵', b: 'going' },
@@ -346,8 +481,24 @@ window.CONV_STEPS = [
     ],
   },
   {
-    id: 'compare', g: 9, icon: '⚖️',
-    title: 'くらべて はなせる',
+    id: 'j2_when', g: 9, icon: '🔗', title: 'とき・りゆう・じょうけんを つなげて はなせる',
+    cando: 'when / because / if / that を使って、2つの文をつなげて話せる（中2）',
+    items: [
+      { en: 'I was watching TV when you called.', ja: 'あなたが電話したとき、テレビを見ていました', e: '📺', b: 'when' },
+      { en: 'I stayed home because I was tired.', ja: 'つかれていたので家にいました', e: '🛋️', b: 'because' },
+      { en: "If it rains tomorrow, I'll stay home.", ja: '明日雨なら、家にいます', e: '🌧️', b: 'If' },
+      { en: 'I think that this movie is great.', ja: 'この映画はすばらしいと思います', e: '🎬', b: 'that' },
+      { en: 'I hope you will like it.', ja: '気に入ってくれるといいな', e: '🎁', b: 'hope' },
+      { en: 'Call me when you get home.', ja: '家に着いたら電話してね', e: '📞', b: 'when' },
+    ],
+    talk: [
+      { q: 'Why were you late?', qja: 'どうしておくれたの？', a: 'Because I missed the bus.', aja: 'バスに乗りおくれたから', e: '🚌' },
+      { q: 'What were you doing at eight last night?', qja: 'きのうの夜8時は何をしていた？', a: 'I was taking a bath.', aja: 'おふろに入っていたよ', e: '🛁' },
+      { q: 'What will you do if it is sunny?', qja: '晴れたら何をする？', a: "If it is sunny, I'll go cycling.", aja: '晴れたら、サイクリングに行くよ', e: '🚲' },
+    ],
+  },
+  {
+    id: 'compare', g: 9, icon: '⚖️', title: 'くらべて はなせる',
     cando: '比較級・最上級・as 〜 as を使って、ものや人をくらべて話せる（中2）',
     items: [
       { en: 'Tom is taller than Ken.', ja: 'トムはケンより背が高い', e: '📏', b: 'taller' },
@@ -364,8 +515,7 @@ window.CONV_STEPS = [
     ],
   },
   {
-    id: 'must', g: 9, icon: '📋',
-    title: 'ルールや すべきことを はなせる',
+    id: 'must', g: 9, icon: '📋', title: 'ルールや すべきことを はなせる',
     cando: 'have to / must / should / don\'t have to を使って、ルールやアドバイスを話せる（中2）',
     items: [
       { en: 'I have to clean my room.', ja: '部屋をそうじしなければなりません', e: '🧹', b: 'have' },
@@ -382,8 +532,58 @@ window.CONV_STEPS = [
     ],
   },
   {
-    id: 'opinion', g: 9, icon: '💡',
-    title: 'いけんと りゆうを いえる',
+    id: 'j2_toinf', g: 9, icon: '🎯', title: 'したいこと・するために が いえる',
+    cando: '不定詞（want to / to 〜 for の目的 / something to eat）を使って話せる（中2）',
+    items: [
+      { en: 'I want to be a vet.', ja: 'じゅう医になりたいです', e: '🐶', b: 'be' },
+      { en: 'I went to the store to buy milk.', ja: '牛乳を買いに店へ行きました', e: '🥛', b: 'buy' },
+      { en: 'I have a lot of things to do today.', ja: '今日はすることがたくさんあります', e: '📝', b: 'things' },
+      { en: 'Do you want something to drink?', ja: '何か飲みものはいりますか', e: '🥤', b: 'something' },
+      { en: 'It is fun to play with my dog.', ja: '犬と遊ぶのは楽しいです', e: '🐕', b: 'fun' },
+      { en: 'I need to practice more.', ja: 'もっと練習する必要があります', e: '🎻', b: 'need' },
+    ],
+    talk: [
+      { q: 'Why did you go to the library?', qja: 'なぜ図書館に行ったの？', a: 'To borrow some books.', aja: '本を借りるためだよ', e: '📚' },
+      { q: 'What do you want to do this summer?', qja: 'この夏は何がしたい？', a: 'I want to go to the sea.', aja: '海に行きたいな', e: '🏖️' },
+      { q: 'Do you have anything to eat?', qja: '何か食べるものある？', a: 'Yes. I have some cookies.', aja: 'うん。クッキーがあるよ', e: '🍪' },
+    ],
+  },
+  {
+    id: 'j2_ing', g: 9, icon: '🎨', title: 'するのが すき・とくい が いえる',
+    cando: '動名詞（enjoy / like / be good at 〜ing）を使って話せる（中2）',
+    items: [
+      { en: 'I enjoy playing the guitar.', ja: 'ギターをひくのを楽しんでいます', e: '🎸', b: 'playing' },
+      { en: 'She is good at drawing pictures.', ja: '彼女は絵をかくのが得意です', e: '🎨', b: 'drawing' },
+      { en: 'Thank you for helping me.', ja: '手伝ってくれてありがとう', e: '🤝', b: 'helping' },
+      { en: 'I finished writing the report.', ja: 'レポートを書き終えました', e: '📄', b: 'writing' },
+      { en: 'How about going fishing?', ja: 'つりに行くのはどう？', e: '🎣', b: 'fishing' },
+      { en: 'Swimming is my favorite sport.', ja: '水泳はわたしのいちばん好きなスポーツです', e: '🏊', b: 'Swimming' },
+    ],
+    talk: [
+      { q: 'What are you good at?', qja: '何が得意？', a: 'I am good at cooking.', aja: '料理が得意だよ', e: '🍳' },
+      { q: 'What do you enjoy doing on holidays?', qja: '休みの日は何をして楽しむ？', a: 'I enjoy reading comics.', aja: 'まんがを読むのを楽しむよ', e: '📚' },
+      { q: 'How about going shopping tomorrow?', qja: '明日買い物に行くのはどう？', a: 'Good idea. I need new shoes.', aja: 'いいね。新しいくつがほしいんだ', e: '👟' },
+    ],
+  },
+  {
+    id: 'j2_there', g: 9, icon: '🏙️', title: 'あるもの・かずと りょうを はなせる',
+    cando: 'There is / are、some / any / many / much / a few を使って話せる（中2）',
+    items: [
+      { en: 'There are three parks in my town.', ja: 'わたしの町には公園が3つあります', e: '🌳', b: 'There' },
+      { en: 'Is there a hospital near here?', ja: 'この近くに病院はありますか', e: '🏥', b: 'there' },
+      { en: 'There is not much time.', ja: '時間があまりありません', e: '⏳', b: 'much' },
+      { en: 'I have a few questions.', ja: 'いくつか質問があります', e: '❓', b: 'few' },
+      { en: 'Do you have any brothers or sisters?', ja: 'きょうだいはいますか', e: '👨‍👩‍👧‍👦', b: 'any' },
+      { en: 'There were many people at the festival.', ja: '祭りにはたくさんの人がいました', e: '🎆', b: 'many' },
+    ],
+    talk: [
+      { q: 'How many students are there in your class?', qja: 'クラスには何人いる？', a: 'There are thirty students.', aja: '30人いるよ', e: '🏫' },
+      { q: 'Is there any milk in the fridge?', qja: '冷蔵庫に牛乳はある？', a: 'No, there is not. I will buy some.', aja: 'ないよ。買ってくるね', e: '🥛' },
+      { q: 'Do you have any pets?', qja: 'ペットは飼ってる？', a: 'Yes. I have a hamster.', aja: 'うん。ハムスターを飼ってるよ', e: '🐹' },
+    ],
+  },
+  {
+    id: 'opinion', g: 9, icon: '💡', title: 'いけんと りゆうを いえる',
     cando: 'I think 〜 because 〜 / I agree など、意見と理由を言ったり、相手に賛成・反対したりできる（中2）',
     items: [
       { en: 'I think English is important.', ja: '英語は大切だと思います', e: '💡', b: 'think' },
@@ -400,44 +600,127 @@ window.CONV_STEPS = [
     ],
   },
   {
-    id: 'experience', g: 10, icon: '✈️',
-    title: 'けいけんを はなせる',
-    cando: '現在完了（have been / have lived / ever / for / since）を使って、経験や続いていることを話せる（中3）',
+    id: 'j2_phone', g: 9, icon: '📞', title: 'でんわと メッセージが できる',
+    cando: '電話でのやりとり（May I speak to 〜? / Hold on / leave a message）ができる（中2）',
+    items: [
+      { en: 'Hello. This is Ken.', ja: 'もしもし、ケンです', e: '📞', b: 'This' },
+      { en: 'May I speak to Yumi?', ja: 'ユミさんをお願いできますか', e: '👧', b: 'speak' },
+      { en: 'Hold on, please.', ja: '少しお待ちください', e: '⏳', b: 'Hold' },
+      { en: 'She is out now.', ja: '彼女は今、外出しています', e: '🚪', b: 'out' },
+      { en: 'Can I leave a message?', ja: '伝言をお願いできますか', e: '📝', b: 'message' },
+      { en: 'Please tell her to call me back.', ja: '折り返し電話するよう伝えてください', e: '🔁', b: 'back' },
+    ],
+    talk: [
+      { q: 'Hello. May I speak to Ken?', qja: 'もしもし。ケンさんをお願いします', a: 'Speaking. Who is calling?', aja: 'ぼくです。どなたですか？', e: '📞' },
+      { q: 'Is Yumi there?', qja: 'ユミさんはいますか？', a: 'Sorry, she is out now. Can I take a message?', aja: 'すみません、外出中です。伝言をうかがいましょうか？', e: '📝' },
+      { q: 'Can you call me back later?', qja: 'あとでかけ直してくれる？', a: 'Sure. I will call you at seven.', aja: 'いいよ。7時にかけるね', e: '🕖' },
+    ],
+  },
+  {
+    id: 'j2_shop', g: 9, icon: '🛍️', title: 'おみせで ほしいものを つたえられる（中2）',
+    cando: 'お店で、サイズ・色・値段・試着など、くわしい買い物の会話ができる（中2）',
+    items: [
+      { en: "I'm looking for a T-shirt.", ja: 'Tシャツをさがしています', e: '👕', b: 'looking' },
+      { en: 'Do you have this in a larger size?', ja: 'これの大きいサイズはありますか', e: '📏', b: 'size' },
+      { en: 'Can I try it on?', ja: '試着してもいいですか', e: '🪞', b: 'try' },
+      { en: 'How much is this cap?', ja: 'このぼうしはいくらですか', e: '🧢', b: 'much' },
+      { en: 'It is a little expensive.', ja: '少し高いですね', e: '💸', b: 'expensive' },
+      { en: "I'll take it.", ja: 'それにします', e: '🛍️', b: 'take' },
+    ],
+    talk: [
+      { q: 'May I help you?', qja: 'お手伝いしましょうか？', a: "Yes, please. I'm looking for a jacket.", aja: 'はい。ジャケットをさがしています', e: '🧥' },
+      { q: 'How about this blue one?', qja: 'この青いのはどうですか？', a: 'I like it. Can I try it on?', aja: 'いいですね。試着してもいいですか？', e: '🪞' },
+      { q: 'How much is it?', qja: 'いくらですか？', a: 'It is 2,000 yen. I will take it.', aja: '2000円です。それにします', e: '💴' },
+    ],
+  },
+  // ---------- 中3 ----------
+  {
+    id: 'experience', g: 10, icon: '✈️', title: 'けいけんを はなせる',
+    cando: '現在完了（have been / ever / never / twice）を使って、経験を話せる（中3）',
     items: [
       { en: 'I have been to Kyoto twice.', ja: '京都に2回行ったことがあります', e: '⛩️', b: 'been' },
       { en: 'Have you ever seen snow?', ja: '雪を見たことがありますか', e: '❄️', b: 'ever' },
       { en: 'I have never eaten natto.', ja: '納豆を一度も食べたことがありません', e: '🍚', b: 'never' },
-      { en: 'I have lived here for five years.', ja: 'ここに5年間住んでいます', e: '🏠', b: 'lived' },
-      { en: 'I have just finished my homework.', ja: 'ちょうど宿題を終えたところです', e: '✅', b: 'just' },
-      { en: 'It has been raining since this morning.', ja: '今朝からずっと雨がふっています', e: '🌧️', b: 'since' },
+      { en: 'She has read this book many times.', ja: '彼女はこの本を何度も読んでいます', e: '📖', b: 'read' },
+      { en: 'Have you ever tried skiing?', ja: 'スキーをしたことがありますか', e: '⛷️', b: 'tried' },
+      { en: 'I have climbed Mt. Fuji once.', ja: '富士山に一度登ったことがあります', e: '🗻', b: 'once' },
     ],
     talk: [
       { q: 'Have you ever been to Okinawa?', qja: '沖縄に行ったことある？', a: 'Yes, I have. I went there last year.', aja: 'うん、去年行ったよ', e: '🏝️' },
-      { q: 'How long have you lived here?', qja: 'ここにどのくらい住んでいるの？', a: 'For five years.', aja: '5年間だよ', e: '🏠' },
-      { q: 'Have you finished your homework yet?', qja: 'もう宿題は終わった？', a: 'Not yet.', aja: 'まだだよ', e: '📝' },
+      { q: 'Have you ever eaten Indian food?', qja: 'インド料理を食べたことある？', a: 'No, I have never eaten it.', aja: 'いや、一度もないよ', e: '🍛' },
+      { q: 'How many times have you seen this movie?', qja: 'この映画を何回見た？', a: 'I have seen it three times.', aja: '3回見たよ', e: '🎬' },
     ],
   },
   {
-    id: 'describe', g: 10, icon: '🔎',
-    title: 'ひとや ものを くわしく せつめいできる',
-    cando: '受け身・分詞・関係代名詞（who / which / that）を使って、人やものをくわしく説明できる（中3）',
+    id: 'j3_since', g: 10, icon: '⏳', title: 'ずっと つづいていることを はなせる',
+    cando: '現在完了の継続・完了（for / since / just / yet / already / have been 〜ing）を使って話せる（中3）',
+    items: [
+      { en: 'I have lived here for five years.', ja: 'ここに5年間住んでいます', e: '🏠', b: 'lived' },
+      { en: 'I have known her since 2020.', ja: '2020年から彼女を知っています', e: '👧', b: 'since' },
+      { en: 'I have just finished my homework.', ja: 'ちょうど宿題を終えたところです', e: '✅', b: 'just' },
+      { en: 'Have you eaten lunch yet?', ja: 'もう昼食は食べましたか', e: '🍱', b: 'yet' },
+      { en: 'It has been raining since this morning.', ja: '今朝からずっと雨がふっています', e: '🌧️', b: 'raining' },
+      { en: 'I have already seen that movie.', ja: 'その映画はもう見ました', e: '🎬', b: 'already' },
+    ],
+    talk: [
+      { q: 'How long have you lived here?', qja: 'ここにどのくらい住んでいるの？', a: 'For five years.', aja: '5年間だよ', e: '🏠' },
+      { q: 'Have you finished your homework yet?', qja: 'もう宿題は終わった？', a: 'Not yet. I am still doing it.', aja: 'まだ。今やっているところ', e: '📝' },
+      { q: 'How long have you been waiting?', qja: 'どのくらい待っているの？', a: 'I have been waiting for twenty minutes.', aja: '20分待っているよ', e: '⏰' },
+    ],
+  },
+  {
+    id: 'j3_passive', g: 10, icon: '🏯', title: 'されること（うけみ）を はなせる',
+    cando: '受け身（is made / was built / is spoken）を使って、ものについて説明できる（中3）',
     items: [
       { en: 'This temple was built 1,300 years ago.', ja: 'この寺は1300年前に建てられました', e: '🏯', b: 'built' },
       { en: 'English is spoken in many countries.', ja: '英語は多くの国で話されています', e: '🌍', b: 'spoken' },
+      { en: 'This cake was made by my mother.', ja: 'このケーキは母が作りました', e: '🍰', b: 'made' },
+      { en: 'The window was broken by the ball.', ja: '窓はボールでわれました', e: '🪟', b: 'broken' },
+      { en: 'Is this song known in Japan?', ja: 'この歌は日本で知られていますか', e: '🎵', b: 'known' },
+      { en: 'These pictures were taken in Hokkaido.', ja: 'これらの写真は北海道でとられました', e: '📷', b: 'taken' },
+    ],
+    talk: [
+      { q: 'When was this castle built?', qja: 'この城はいつ建てられたの？', a: 'It was built about 400 years ago.', aja: '約400年前に建てられました', e: '🏯' },
+      { q: 'What language is spoken in Brazil?', qja: 'ブラジルでは何語が話されている？', a: 'Portuguese is spoken there.', aja: 'ポルトガル語が話されています', e: '🇧🇷' },
+      { q: 'Who was this book written by?', qja: 'この本はだれが書いたの？', a: 'It was written by Natsume Soseki.', aja: '夏目漱石によって書かれました', e: '📖' },
+    ],
+  },
+  {
+    id: 'describe', g: 10, icon: '🔎', title: 'ひとや ものを くわしく せつめいできる',
+    cando: '関係代名詞（who / which / that）を使って、人やものをくわしく説明できる（中3）',
+    items: [
       { en: 'The girl who is singing is my sister.', ja: '歌っている女の子はわたしの姉（妹）です', e: '🎤', b: 'who' },
       { en: 'This is the cake which I made.', ja: 'これはわたしが作ったケーキです', e: '🍰', b: 'which' },
-      { en: 'Look at the boy playing the guitar.', ja: 'ギターをひいている男の子を見て', e: '🎸', b: 'playing' },
       { en: 'I have a friend who lives in Canada.', ja: 'カナダに住んでいる友だちがいます', e: '🍁', b: 'lives' },
+      { en: 'The book that you lent me was interesting.', ja: '貸してくれた本はおもしろかったです', e: '📖', b: 'that' },
+      { en: 'This is a robot which can talk.', ja: 'これは話せるロボットです', e: '🤖', b: 'which' },
+      { en: 'He is the man who helped me yesterday.', ja: '彼はきのうわたしを助けてくれた人です', e: '🙋‍♂️', b: 'helped' },
     ],
     talk: [
       { q: 'Who is that man?', qja: 'あの男の人はだれ？', a: 'He is the teacher who teaches us music.', aja: 'わたしたちに音楽を教えてくれる先生です', e: '🎵' },
       { q: 'What is this?', qja: 'これは何？', a: 'It is a toy which was made in Japan.', aja: '日本で作られたおもちゃです', e: '🧸' },
-      { q: 'Where was this picture taken?', qja: 'この写真はどこでとられたの？', a: 'It was taken in Hokkaido.', aja: '北海道でとられたよ', e: '📷' },
+      { q: 'Which bag is yours?', qja: 'どのかばんがあなたの？', a: 'The one that has a red ribbon.', aja: '赤いリボンがついているやつ', e: '🎀' },
     ],
   },
   {
-    id: 'discuss', g: 10, icon: '💬',
-    title: 'しつもんして かいわを ひろげられる',
+    id: 'j3_part', g: 10, icon: '🎸', title: 'している人・されたものを いえる',
+    cando: '分詞（the boy playing 〜 / a letter written by 〜）を使って、人やものを説明できる（中3）',
+    items: [
+      { en: 'Look at the boy playing the guitar.', ja: 'ギターをひいている男の子を見て', e: '🎸', b: 'playing' },
+      { en: 'The woman talking with Ken is my aunt.', ja: 'ケンと話している女性はわたしのおばです', e: '👩', b: 'talking' },
+      { en: 'This is a letter written by my grandfather.', ja: 'これは祖父が書いた手紙です', e: '✉️', b: 'written' },
+      { en: 'I like the pictures painted by her.', ja: '彼女がかいた絵が好きです', e: '🖼️', b: 'painted' },
+      { en: 'The dog sleeping under the tree is Pochi.', ja: '木の下でねている犬はポチです', e: '🐕', b: 'sleeping' },
+      { en: 'We ate cookies made by Yumi.', ja: 'ユミが作ったクッキーを食べました', e: '🍪', b: 'made' },
+    ],
+    talk: [
+      { q: 'Who is the girl reading a book over there?', qja: 'あそこで本を読んでいる女の子はだれ？', a: 'She is my cousin, Mika.', aja: 'いとこのミカだよ', e: '📖' },
+      { q: 'Is this a picture taken in Okinawa?', qja: 'これは沖縄でとった写真？', a: 'Yes. It was taken last summer.', aja: 'うん。去年の夏にとったんだ', e: '📷' },
+      { q: 'Whose is the bag left on the desk?', qja: '机に置き忘れたかばんはだれの？', a: 'I think it is the bag used by Ken.', aja: 'ケンが使っているかばんだと思う', e: '🎒' },
+    ],
+  },
+  {
+    id: 'discuss', g: 10, icon: '💬', title: 'しつもんして かいわを ひろげられる',
     cando: '間接疑問・ていねいな依頼・誘いを使って、相手に質問しながら会話を広げられる（中3）',
     items: [
       { en: 'Do you know where the station is?', ja: '駅がどこにあるか知っていますか', e: '🚉', b: 'where' },
@@ -448,13 +731,83 @@ window.CONV_STEPS = [
       { en: 'Could you say that again?', ja: 'もう一度言っていただけますか', e: '🔁', b: 'again' },
     ],
     talk: [
-      { q: 'Would you like something to drink?', qja: '何か飲みものはいかがですか？', a: 'Yes, please. I\'d like some tea.', aja: 'はい、お茶をお願いします', e: '🍵' },
+      { q: 'Would you like something to drink?', qja: '何か飲みものはいかがですか？', a: "Yes, please. I'd like some tea.", aja: 'はい、お茶をお願いします', e: '🍵' },
       { q: 'Do you know what time the museum opens?', qja: '博物館が何時に開くか知っている？', a: 'It opens at nine.', aja: '9時に開くよ', e: '🏛️' },
       { q: 'Would you like to come to my party?', qja: 'わたしのパーティーに来ない？', a: "I'd love to. Thank you!", aja: 'ぜひ行きたい。ありがとう！', e: '🎉' },
+    ],
+  },
+  {
+    id: 'j3_want', g: 10, icon: '🤲', title: 'してほしい・させる・てつだう が いえる',
+    cando: 'want you to / tell 〜 to / make 〜 / let me / help 〜 を使って話せる（中3）',
+    items: [
+      { en: 'I want you to come with me.', ja: 'いっしょに来てほしいです', e: '🚶', b: 'want' },
+      { en: 'My mother told me to go to bed.', ja: '母はわたしにねるように言いました', e: '🛏️', b: 'told' },
+      { en: 'This song makes me happy.', ja: 'この歌はわたしを幸せにします', e: '🎵', b: 'makes' },
+      { en: 'Let me help you.', ja: '手伝わせてください', e: '🤝', b: 'Let' },
+      { en: 'She helped me carry the boxes.', ja: '彼女は箱を運ぶのを手伝ってくれました', e: '📦', b: 'carry' },
+      { en: 'Please ask him to wait.', ja: '彼に待つように頼んでください', e: '⏳', b: 'ask' },
+    ],
+    talk: [
+      { q: 'What did your teacher tell you?', qja: '先生に何て言われた？', a: 'She told me to study harder.', aja: 'もっと勉強するように言われた', e: '📚' },
+      { q: 'What do you want me to do?', qja: 'わたしに何をしてほしい？', a: 'I want you to open the door.', aja: 'ドアを開けてほしいな', e: '🚪' },
+      { q: 'This bag is heavy.', qja: 'このかばん重いなあ', a: 'Let me carry it for you.', aja: '持たせてよ', e: '🎒' },
+    ],
+  },
+  {
+    id: 'j3_wish', g: 10, icon: '🌠', title: 'もし〜なら・〜だったらいいのに が いえる',
+    cando: '仮定法（If I were / I wish I could）を使って、願いや想像を話せる（中3）',
+    items: [
+      { en: 'If I were a bird, I could fly to you.', ja: 'もしわたしが鳥なら、あなたのところへ飛んでいけるのに', e: '🐦', b: 'were' },
+      { en: 'I wish I could speak French.', ja: 'フランス語が話せたらいいのに', e: '🇫🇷', b: 'wish' },
+      { en: 'If I had more time, I would travel.', ja: 'もっと時間があれば、旅行するのに', e: '✈️', b: 'would' },
+      { en: 'I wish it were Sunday today.', ja: '今日が日曜日だったらいいのに', e: '📅', b: 'were' },
+      { en: 'What would you do if you had a million yen?', ja: '100万円あったら何をしますか', e: '💰', b: 'would' },
+      { en: 'I wish I had a dog.', ja: '犬を飼っていたらいいのに', e: '🐕', b: 'had' },
+    ],
+    talk: [
+      { q: 'What would you do if you had a million yen?', qja: '100万円あったら何をする？', a: 'I would travel around the world.', aja: '世界中を旅行するよ', e: '🌍' },
+      { q: 'If you could be an animal, what would you be?', qja: '動物になれるなら何になる？', a: 'I would be a dolphin.', aja: 'イルカになるな', e: '🐬' },
+      { q: 'What do you wish for?', qja: '何を願う？', a: 'I wish I could play the piano well.', aja: 'ピアノが上手にひけたらいいのに', e: '🎹' },
+    ],
+  },
+  {
+    id: 'j3_speech', g: 10, icon: '🎤', title: 'いけんを じゅんばんに はなせる',
+    cando: 'First / Second / Finally / In my opinion などを使って、意見を順序立てて話せる（中3）',
+    items: [
+      { en: 'In my opinion, we should read more books.', ja: 'わたしの意見では、もっと本を読むべきです', e: '📚', b: 'opinion' },
+      { en: 'I have two reasons.', ja: '理由は2つあります', e: '✌️', b: 'reasons' },
+      { en: 'First, reading makes us smart.', ja: '第一に、読書はわたしたちをかしこくします', e: '🧠', b: 'First' },
+      { en: 'Second, it is a lot of fun.', ja: '第二に、とても楽しいです', e: '😊', b: 'Second' },
+      { en: 'Finally, books are good friends.', ja: '最後に、本はよい友だちです', e: '🤝', b: 'Finally' },
+      { en: 'That is why I love reading.', ja: 'だからわたしは読書が大好きなのです', e: '❤️', b: 'why' },
+    ],
+    talk: [
+      { q: 'What is your opinion about homework?', qja: '宿題についてどう思う？', a: 'In my opinion, it is necessary but too much.', aja: 'わたしの意見では、必要だけど多すぎます', e: '📝' },
+      { q: 'Why do you think so?', qja: 'なぜそう思うの？', a: 'I have two reasons. First, we need time to rest.', aja: '理由は2つ。第一に、休む時間が必要です', e: '😴' },
+      { q: 'Anything else?', qja: 'ほかには？', a: 'Second, we want to play with friends.', aja: '第二に、友だちと遊びたいです', e: '👫' },
+    ],
+  },
+  {
+    id: 'j3_future', g: 10, icon: '🌍', title: 'しょうらいの ゆめと せかいの ことを はなせる',
+    cando: 'I would like to / be interested in / It is important to など、将来や社会のことを話せる（中3）',
+    items: [
+      { en: 'I would like to work abroad in the future.', ja: '将来は海外で働きたいです', e: '🌍', b: 'abroad' },
+      { en: 'I am interested in science.', ja: '科学に興味があります', e: '🔬', b: 'interested' },
+      { en: 'It is important to protect the environment.', ja: '環境を守ることは大切です', e: '🌱', b: 'protect' },
+      { en: 'We should reduce plastic waste.', ja: 'プラスチックごみを減らすべきです', e: '♻️', b: 'reduce' },
+      { en: 'Technology has changed our lives.', ja: '科学技術はわたしたちの生活を変えました', e: '💻', b: 'changed' },
+      { en: 'I hope the world will be peaceful.', ja: '世界が平和になることを願っています', e: '🕊️', b: 'peaceful' },
+    ],
+    talk: [
+      { q: 'What would you like to do in the future?', qja: '将来は何をしたい？', a: 'I would like to be a nurse and help people.', aja: '看護師になって人を助けたいです', e: '🧑‍⚕️' },
+      { q: 'What are you interested in?', qja: '何に興味がある？', a: 'I am interested in space.', aja: '宇宙に興味があります', e: '🚀' },
+      { q: 'What can we do for the environment?', qja: '環境のために何ができる？', a: 'We can use our own bags when we shop.', aja: '買い物のときに自分のバッグを使えます', e: '🛍️' },
     ],
   },
 ];
 
 // 学年ごとの スタート ステップ（0から数える）
 // 年少〜小6、中1〜中3
-window.CONV_START = [0, 0, 0, 0, 0, 1, 3, 5, 7, 15, 17, 21];
+window.CONV_START = [0, 0, 0, 0, 0, 1, 3, 5, 7, 15, 25, 35];
+// ステップを ふやす前の 中学ステップ（記録の ひきつぎ用）
+window.CONV_OLD_JH = ['third', 'now', 'plan', 'compare', 'must', 'opinion', 'experience', 'describe', 'discuss'];
