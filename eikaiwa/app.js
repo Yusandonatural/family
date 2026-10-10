@@ -3,7 +3,7 @@
    - ステップは ../study/js/conversation.js の CONV_STEPS（年少〜中3 の 45ステップ）
    - だれが やるかは まなびポイント（KidsPoints）の 子どもを つかう（いりぐちで えらんだ子）
    - 1つの ひょうげん・やりとりを 2回 せいかいすると「おぼえた」。ぜんぶ おぼえたら つぎの ステップへ
-   - べんきょう 1ぷん = 10ポイント（KidsPoints.studyTime）
+   - せいかい 1もん = 5ポイント（KidsPoints.answers。じかんには かんけいなし）
    ========================================================= */
 (function () {
   'use strict';
@@ -183,7 +183,7 @@
       });
       html += '</div>';
     });
-    html += `<p class="note">ステップの もんだいを 2回ずつ せいかいすると クリア。つぎの ステップが ひらくよ。<br>べんきょう 1ぷん = ⭐10ポイント（🎮 ゲーム 1ぷん ぶん）</p></section>`;
+    html += `<p class="note">ステップの もんだいを 2回ずつ せいかいすると クリア。つぎの ステップが ひらくよ。<br>せいかい 1もん = ⭐5ポイント（⭐10ポイントで 🎮 ゲーム 1ぷん）</p></section>`;
     render(html);
     bindHeader();
     $('.go-now').onclick = () => showStep(Math.min(p.si, STEPS.length - 1));
@@ -317,7 +317,7 @@
       if (answered) return; answered = true;
       tone(ok);
       const m = prog().m;
-      if (ok) { L.good++; if (!L.retry.has(q.u.key)) m[q.u.key] = (m[q.u.key] || 0) + 1; prog().xp += 10; }
+      if (ok) { L.good++; if (!L.retry.has(q.u.key)) m[q.u.key] = (m[q.u.key] || 0) + 1; prog().xp += 10; if (KPA) KPA.correct(); }
       else if (!L.retry.has(q.u.key)) { L.retry.add(q.u.key); L.qs.push(makeQ(q.u)); } // まちがえたら さいごに もういちど
       save();
       const fb = $('.fb');
@@ -383,7 +383,7 @@
         : '<div class="clear">🏆 中3まで ぜんぶ クリア！ えいごで かいわが できるね！</div>';
     }
     save();
-    if (window.__eikaiwaTime) window.__eikaiwaTime.flush();
+    if (KPA) KPA.flush();
     const total = L.qs.length - L.skip;
     render(`<section class="screen result">
       <div class="big-ic">${L.good >= total * 0.8 ? '🌟' : '👍'}</div>
@@ -442,8 +442,8 @@
     showMap();
   }
 
-  // べんきょう 1ぷん = 10ポイント
-  if (KP) window.__eikaiwaTime = KP.studyTime('eikaiwa', { label: 'えいかいわ' });
+  // せいかい 1もん = 5ポイント（まなびの いりぐち と 共通）
+  const KPA = KP && KP.answers ? KP.answers('eikaiwa', { label: 'えいかいわ せいかい' }) : null;
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   route();
 })();
