@@ -462,6 +462,7 @@ hr { border: 0; border-top: 1px dashed var(--line); margin: 12px 0; }
    タイマー
    ========================================================= */
 .top-actions { display: flex; align-items: center; gap: 10px; }
+.apps-link { text-decoration: none; color: inherit; }
 .timer-btn { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 14px 0 10px; border-radius: 999px; background: var(--card); box-shadow: var(--shadow); font-size: 1.3rem; }
 .timer-btn .tchip, .go-timer .tchip { font-size: .85rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .home .go-timer { max-width: 360px; align-self: center; }
