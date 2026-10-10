@@ -457,6 +457,7 @@
           <button class="me switch" aria-label="きりかえ"><span class="av">${p.avatar}</span><span><b>${esc(p.name)}</b><small>${GRADES[p.grade]} ・ <u>きりかえ</u></small></span></button>
           <span class="top-actions">
             <button class="timer-btn go-timer" aria-label="タイマー">⏱<b class="tchip">${timerRunning() || S.timer && S.timer.left > 0 && S.timer.left < S.timer.total ? fmt(timerLeft()) : 'タイマー'}</b></button>
+            <a class="icon-btn apps-link" href="https://yusandonatural.github.io/idea-/kids/" aria-label="アプリを えらぶ がめんへ">🎒</a>
             <button class="icon-btn parent-link" aria-label="おうちの人の せってい">⚙</button>
           </span>
         </header>
