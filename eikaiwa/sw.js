@@ -1,6 +1,6 @@
 /* オフラインでも使えるように キャッシュ（ネット優先・だめなら キャッシュ）。更新時は VERSION を上げる */
-const VERSION = 'eikaiwa-v1';
-const ASSETS = ['./', 'index.html', 'style.css?v=1', 'app.js?v=1', 'icon.svg', 'manifest.webmanifest', '../study/js/conversation.js?v=1'];
+const VERSION = 'eikaiwa-v2';
+const ASSETS = ['./', 'index.html', 'style.css?v=1', 'app.js?v=2', 'icon.svg', 'manifest.webmanifest', '../study/js/conversation.js?v=1'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

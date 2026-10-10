@@ -827,7 +827,7 @@
     every(1000, () => {
       if (paused || document.hidden) return;
       if (Date.now() - lastAct > IDLE_LIMIT * 1000) { pause(); return; }
-      d.sec += 1; sessionSec += 1; p.kpSec = (p.kpSec || 0) + 1;
+      d.sec += 1; sessionSec += 1;
       if (rewardable) { d.lessonSec += 1; if (d.lessonSec >= target) timeUp = true; }
       if (d.sec % 10 === 0) save();
       updateBar();
@@ -1045,10 +1045,8 @@
       const plAfter = playerLevel(p.xp);
       (d.quests = d.quests || []).push({ s: quest.subj, st: stars });
       dailyLevelUp(p);
-      // まなびポイント：べんきょう 1ぷん = 10ポイント（はんぱの びょうは つぎの クエストへ もちこし）
-      const kpMin = Math.floor((p.kpSec || 0) / 60);
-      let kp = null;
-      if (kpMin > 0) { p.kpSec -= kpMin * 60; kp = sharePoints(p, kpMin * 10, `${SUBJ_LABEL[quest.subj] || ''}クエスト ${kpMin}ぷん`, { toast: false }); }
+      // まなびポイント：せいかい 1もん = 5ポイント（じかんには かんけいなし）
+      const kp = good > 0 ? sharePoints(p, good * 5, `${SUBJ_LABEL[quest.subj] || ''}クエスト せいかい ${good}もん`, { toast: false }) : null;
       save(); updateBar();
       const doneLesson = rewardable && d.lessonSec >= target;
       if (stars === 3) SFX.fanfare(); else SFX.ok();
