@@ -200,6 +200,19 @@
     } catch (e) { console.warn('KidsPoints', e); return null; }
   }
 
+  // この アプリの ゲームタイムを つかった ぶん、まなびポイントも へらす（ゲーム 1ぷん = 10ポイント）
+  function chargeGame(p, d) {
+    const KP = window.KidsPoints;
+    if (!KP || !p.kpKid || !d.gameTotal) return;
+    const usedMin = Math.floor(Math.max(0, d.gameTotal - Math.max(0, gameRemaining(d))) / 60);
+    const due = usedMin * 10 - (d.kpSpent || 0);
+    if (due <= 0) return;
+    try { d.kpSpent = (d.kpSpent || 0) + KP.spend(due, `まいにち30ぷん ゲーム ${usedMin}ぷん`, p.kpKid); } catch (e) { console.warn('KidsPoints', e); }
+    // もっていた ポイントより 多く つかっても、その ぶんは つぎに もちこさない
+    d.kpSpent = Math.max(d.kpSpent, usedMin * 10);
+    save();
+  }
+
   // レベルから、この もんだいの 段階（学年）と むずかしさを きめる
   function pickGradeLv(p, subj, sessionDrop) {
     const L = levels(p);
@@ -416,7 +429,7 @@
           <button class="who-btn add-who"><span class="av">＋</span><span class="nm">ついか</span><span class="gr">おうちの人が とうろく</span></button>
         </div>
         <button class="btn big ghost go-timer">⏱ タイマー${timerRunning() ? ` <b class="tchip">${fmt(timerLeft())}</b>` : ''}</button>
-        <a class="btn big ghost go-apps" href="https://yusandonatural.github.io/idea-/kids/">🎒 ほかの アプリ<small>日本史・世界史・地理・百人一首</small></a>
+        <a class="btn big ghost go-apps" href="https://yusandonatural.github.io/idea-/kids/">🎒 ほかの アプリ<small>えいかいわ・日本史・世界史・地理・百人一首</small></a>
         <div class="home-links">
           <button class="link parent-link">⚙ おうちの人の せってい</button>
           <button class="link transfer-link">📦 データの引き継ぎ</button>
@@ -435,7 +448,7 @@
   function showDash() {
     keepAwake(false);
     const p = cur(); if (!p) return showHome();
-    const d = today(p); dailyLevelUp(p);
+    const d = today(p); dailyLevelUp(p); chargeGame(p, d);
     const L = levels(p);
     const target = p.studyMin * 60;
     const ls = lessonsOf(d), lsec = lessonSecOf(d), can = canLesson(p, d);
@@ -814,7 +827,7 @@
     every(1000, () => {
       if (paused || document.hidden) return;
       if (Date.now() - lastAct > IDLE_LIMIT * 1000) { pause(); return; }
-      d.sec += 1; sessionSec += 1;
+      d.sec += 1; sessionSec += 1; p.kpSec = (p.kpSec || 0) + 1;
       if (rewardable) { d.lessonSec += 1; if (d.lessonSec >= target) timeUp = true; }
       if (d.sec % 10 === 0) save();
       updateBar();
@@ -1032,7 +1045,10 @@
       const plAfter = playerLevel(p.xp);
       (d.quests = d.quests || []).push({ s: quest.subj, st: stars });
       dailyLevelUp(p);
-      const kp = sharePoints(p, good + 10 + (good >= Math.ceil(QN * 0.8) ? 5 : 0), `${SUBJ_LABEL[quest.subj] || ''}クエスト ${good}/${QN}`, { toast: false });
+      // まなびポイント：べんきょう 1ぷん = 10ポイント（はんぱの びょうは つぎの クエストへ もちこし）
+      const kpMin = Math.floor((p.kpSec || 0) / 60);
+      let kp = null;
+      if (kpMin > 0) { p.kpSec -= kpMin * 60; kp = sharePoints(p, kpMin * 10, `${SUBJ_LABEL[quest.subj] || ''}クエスト ${kpMin}ぷん`, { toast: false }); }
       save(); updateBar();
       const doneLesson = rewardable && d.lessonSec >= target;
       if (stars === 3) SFX.fanfare(); else SFX.ok();
@@ -1044,7 +1060,7 @@
         <div class="q-stars">${'<span class="on">★</span>'.repeat(stars)}${'<span>★</span>'.repeat(3 - stars)}</div>
         <p class="q-score">${good} / ${QN} せいかい</p>
         <p class="q-xp">✨ +${quest.xp + bonus} XP</p>
-        ${kp && kp.added ? `<p class="q-kp">⭐ まなびポイント +${kp.added + kp.bonus}<small>（ぜんぶで ${kp.balance}）</small></p>` : ''}
+        ${kp && kp.added ? `<p class="q-kp">⭐ まなびポイント +${kp.added + kp.bonus}<small>（🎮 ゲーム ${Math.floor(Math.max(0, kp.balance) / 10)}ぷん ぶん）</small></p>` : ''}
         ${lvMsg ? `<p class="q-lv">${lvMsg}</p>` : ''}
         ${plAfter > plBefore ? `<p class="q-pl">🏆 プレイヤー Lv.${plAfter} に なった！</p>` : ''}
         <button class="btn big primary q-next">${doneLesson ? '🎉 レッスン クリア！' : '⚔️ つぎの クエスト'}</button>
@@ -1081,7 +1097,6 @@
           if (si < STEPS.length - 1) c.si = si + 1;
           msg = { icon: STEPS[si].icon, title: `ステップ${si + 1} クリア！`, body: `「${STEPS[si].title}」ように なったね！`, next: si < STEPS.length - 1 ? `つぎは ステップ${si + 2}「${STEPS[si + 1].title}」` : '🏆 えいかいわロード ぜんぶ クリア！', say: 'Great job! You did it!' };
           if (window.trackConversion) window.trackConversion('app_action_complete', { action: 'conv_step_clear', step: si + 1 });
-          sharePoints(p, 30, `えいかいわ ステップ${si + 1} クリア`, { key: `conv-${STEPS[si].id}` });
         }
       }
     }
@@ -1192,6 +1207,7 @@
     function stop() {
       if (!d.gameRunAt) return;
       d.gameLeft = Math.max(0, gameRemaining(d)); d.gameRunAt = null; save();
+      chargeGame(p, d);
     }
     on('.toggle', 'click', () => {
       SFX.tap();
@@ -1199,7 +1215,8 @@
       else if (gameRemaining(d) > 0) { d.gameRunAt = Date.now(); save(); keepAwake(true); launchDeviceTimer(gameRemaining(d), 'ゲームタイム おしまい'); }
       draw();
     });
-    on('.back', 'click', () => { keepAwake(false); showDash(); });
+    on('.back', 'click', () => { keepAwake(false); chargeGame(p, d); showDash(); });
+    chargeGame(p, d);
     every(500, () => {
       const left = gameRemaining(d);
       if (d.gameRunAt && left <= 300 && !warned5) { warned5 = true; SFX.warn(); speak([{ text: 'のこり 5ふん だよ', lang: 'ja' }]); }
@@ -1207,6 +1224,7 @@
       if (left <= 0 && !ended) {
         ended = true;
         d.gameLeft = 0; d.gameRunAt = null; save();
+        chargeGame(p, d);
         SFX.alarm(); setTimeout(SFX.alarm, 1200);
         speak([{ text: 'ゲームの じかんは おしまいです。 また あした がんばろう', lang: 'ja' }]);
         if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
