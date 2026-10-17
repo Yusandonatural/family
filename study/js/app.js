@@ -1045,8 +1045,8 @@
       const plAfter = playerLevel(p.xp);
       (d.quests = d.quests || []).push({ s: quest.subj, st: stars });
       dailyLevelUp(p);
-      // まなびポイント：せいかい 1もん = 5ポイント（じかんには かんけいなし）
-      const kp = good > 0 ? sharePoints(p, good * 5, `${SUBJ_LABEL[quest.subj] || ''}クエスト せいかい ${good}もん`, { toast: false }) : null;
+      // まなびポイント：せいかい 1もん = 3ポイント（じかんには かんけいなし）
+      const kp = good > 0 ? sharePoints(p, good * 3, `${SUBJ_LABEL[quest.subj] || ''}クエスト せいかい ${good}もん`, { toast: false }) : null;
       save(); updateBar();
       const doneLesson = rewardable && d.lessonSec >= target;
       if (stars === 3) SFX.fanfare(); else SFX.ok();
