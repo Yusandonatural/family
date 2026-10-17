@@ -2,8 +2,9 @@
    えいかいわコース
    - ステップは ../study/js/conversation.js の CONV_STEPS（年少〜中3 の 45ステップ）
    - だれが やるかは まなびポイント（KidsPoints）の 子どもを つかう（いりぐちで えらんだ子）
-   - 1つの ひょうげん・やりとりを 2回 せいかいすると「おぼえた」。ぜんぶ おぼえたら つぎの ステップへ
-   - せいかい 1もん = 5ポイント（KidsPoints.answers。じかんには かんけいなし）
+   - 1つの ひょうげん・やりとりを せいかいすると「おぼえた」で、もう 出さない。ぜんぶ おぼえたら つぎの ステップへ
+   - まちがえた ものは「まちがいノート」(p.miss) に入り、せいかいするまで つぎの レッスンで また出る
+   - せいかい 1もん = 3ポイント（KidsPoints.answers。じかんには かんけいなし）
    ========================================================= */
 (function () {
   'use strict';
@@ -11,7 +12,8 @@
   const START = window.CONV_START || [0, 0, 0, 0, 0, 1, 3, 5, 7, 15, 25, 35];
   const KP = window.KidsPoints || null;
   const KEY = 'eikaiwa:v1';
-  const MASTER = 2;          // 2回 せいかいで おぼえた
+  const MASTER = 1;          // 1回 せいかいで おぼえた（せいかいした もんだいは もう 出さない）
+  const RECENT = 10 * 60 * 1000; // おさらいでも 10ぷん いないに 出した ものは 出さない
   const QN = 10;             // 1レッスンの もんだい数
   const HUB = 'https://yusandonatural.github.io/idea-/kids/';
   const GRADES = ['年少', '年中', '年長', '小1', '小2', '小3', '小4', '小5', '小6', '中1', '中2', '中3'];
@@ -155,7 +157,19 @@
     const b = $('.top .me');
     if (b) b.onclick = () => { try { sessionStorage.removeItem('kids-hub:picked'); } catch (e) { /* なし */ } me = null; route(); };
   }
+  // ぜんぶ おぼえた ステップは クリアに して、つぎへ すすめる
+  function syncCleared() {
+    const p = prog();
+    while (p.si < STEPS.length) {
+      const pr = stepProgress(p.si);
+      if (pr.got < pr.total) break;
+      p.cleared[STEPS[p.si].id] = p.cleared[STEPS[p.si].id] || today();
+      p.si++;
+    }
+    save();
+  }
   function showMap() {
+    syncCleared();
     const p = prog();
     const done = Object.keys(p.cleared).length;
     let html = header() + `<section class="screen map">
@@ -183,7 +197,7 @@
       });
       html += '</div>';
     });
-    html += `<p class="note">ステップの もんだいを 2回ずつ せいかいすると クリア。つぎの ステップが ひらくよ。<br>せいかい 1もん = ⭐5ポイント（⭐10ポイントで 🎮 ゲーム 1ぷん）</p></section>`;
+    html += `<p class="note">せいかいした もんだいは もう 出ないよ。ぜんぶ せいかいすると クリア、つぎの ステップが ひらくよ。<br>まちがえた もんだいは せいかいするまで また 出るよ。せいかい 1もん = ⭐3ポイント（⭐10ポイントで 🎮 ゲーム 1ぷん）</p></section>`;
     render(html);
     bindHeader();
     $('.go-now').onclick = () => showStep(Math.min(p.si, STEPS.length - 1));
@@ -270,20 +284,25 @@
   }
   function buildLesson(si) {
     const p = prog();
+    p.miss = p.miss || {}; p.seen = p.seen || {};
+    const now = Date.now();
+    const fresh = (u) => !(p.seen[u.key] > now - RECENT);
     const us = unitsOf(si);
-    // まだ おぼえていない ものを 先に。足りなければ おぼえた もので ふくしゅう
+    // 1) この ステップの まだ せいかいしていない もの（1回ずつ）
     const todo = shuffle(us.filter((u) => (p.m[u.key] || 0) < MASTER));
-    const doneU = shuffle(us.filter((u) => (p.m[u.key] || 0) >= MASTER));
-    let list = todo.concat(todo).slice(0, QN - 2);
-    // まえの ステップの ふくしゅうを 2もん
-    const prev = [];
-    for (let j = si - 1; j >= Math.max(0, si - 4); j--) prev.push(...unitsOf(j));
-    list = list.concat(shuffle(prev).slice(0, 2));
-    while (list.length < QN) list.push(pick(doneU.length ? doneU : us));
-    // 同じ ものが つづかないように
-    list = shuffle(list);
-    for (let i = 1; i < list.length; i++) if (list[i].key === list[i - 1].key) { const j = (i + 2) % list.length; [list[i], list[j]] = [list[j], list[i]]; }
-    return list.map(makeQ);
+    // 2) まちがいノート（ほかの ステップで まちがえた もの）を さいだい 3もん
+    const all = new Map();
+    for (let j = 0; j < STEPS.length; j++) unitsOf(j).forEach((u) => all.set(u.key, u));
+    const missU = shuffle(Object.keys(p.miss).map((k) => all.get(k)).filter((u) => u && u.si !== si && fresh(u)));
+    let list = todo.slice(0, QN);
+    list = list.concat(missU.slice(0, Math.min(3, QN - list.length)));
+    // 3) この ステップを もう ぜんぶ おぼえていて、やる ものが ないとき（クリアした ステップの おさらい）は、
+    //    いちばん むかしに やった ものから じゅんに（10ぷん いないに やった ものは 出さない）
+    if (!list.length) {
+      list = us.filter(fresh).sort((a, b) => (p.seen[a.key] || 0) - (p.seen[b.key] || 0)).slice(0, QN);
+      if (!list.length) list = us.slice().sort((a, b) => (p.seen[a.key] || 0) - (p.seen[b.key] || 0)).slice(0, Math.min(QN, us.length));
+    }
+    return shuffle(list).map(makeQ);
   }
 
   // ---------- 画面：レッスン ----------
@@ -316,9 +335,17 @@
     const finish = (ok, shown) => {
       if (answered) return; answered = true;
       tone(ok);
-      const m = prog().m;
-      if (ok) { L.good++; if (!L.retry.has(q.u.key)) m[q.u.key] = (m[q.u.key] || 0) + 1; prog().xp += 10; if (KPA) KPA.correct(); }
-      else if (!L.retry.has(q.u.key)) { L.retry.add(q.u.key); L.qs.push(makeQ(q.u)); } // まちがえたら さいごに もういちど
+      const P = prog(), m = P.m;
+      P.miss = P.miss || {}; P.seen = P.seen || {};
+      P.seen[q.u.key] = Date.now();
+      if (ok) {
+        L.good++; P.xp += 10; if (KPA) KPA.correct();
+        m[q.u.key] = Math.max(m[q.u.key] || 0, MASTER); // せいかいしたら おぼえた → もう 出さない
+        delete P.miss[q.u.key];                          // まちがいノートからも けす
+      } else {
+        P.miss[q.u.key] = (P.miss[q.u.key] || 0) + 1;    // まちがいノートに いれる（つぎの レッスンでも 出る）
+        if (!L.retry.has(q.u.key)) { L.retry.add(q.u.key); L.qs.push(makeQ(q.u)); } // この レッスンの さいごに もういちど
+      }
       save();
       const fb = $('.fb');
       fb.className = 'fb show ' + (ok ? 'ok' : 'ng');
@@ -442,7 +469,7 @@
     showMap();
   }
 
-  // せいかい 1もん = 5ポイント（まなびの いりぐち と 共通）
+  // せいかい 1もん = 3ポイント（まなびの いりぐち と 共通）
   const KPA = KP && KP.answers ? KP.answers('eikaiwa', { label: 'えいかいわ せいかい' }) : null;
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   route();
