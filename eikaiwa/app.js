@@ -183,6 +183,11 @@
         </div>
         <button class="btn primary go-now">▶ つづける</button>
       </div>`;
+    if (VERBS.length) {
+      const vl = VERBS.filter((v) => (p.m['v:' + v.en] || 0) >= MASTER).length;
+      html += `<button class="card verbcard go-verbs"><span class="vc-ic">🏃</span><span><b>どうし ${VERBS.length}</b><small>えいごの うごきの ことばを 10こずつ おぼえよう</small>
+        <span class="bar"><i style="width:${Math.round(vl / VERBS.length * 100)}%"></i></span><small>おぼえた ${vl} / ${VERBS.length}</small></span><span class="vc-go">▶</span></button>`;
+    }
     BANDS.forEach((b, bi) => {
       const idx = STEPS.map((s, i) => i).filter((i) => bandOf(STEPS[i]) === bi);
       if (!idx.length) return;
@@ -201,6 +206,7 @@
     render(html);
     bindHeader();
     $('.go-now').onclick = () => showStep(Math.min(p.si, STEPS.length - 1));
+    if ($('.go-verbs')) $('.go-verbs').onclick = showVerbs;
     $$('.step').forEach((b) => b.onclick = () => { if (b.classList.contains('locked')) { tone(false); return; } showStep(+b.dataset.si); });
     const c = $('.step.curr'); if (c) c.scrollIntoView({ block: 'center' });
   }
@@ -333,7 +339,7 @@
       ${body}
       <div class="fb"></div>
     </section>`);
-    $('.quit').onclick = () => { stopRec(); showStep(L.si); };
+    $('.quit').onclick = () => { stopRec(); if (L.verb != null) showVerbSet(L.verb); else showStep(L.si); };
     if (q.audio) { setTimeout(() => say(q.audio), 250); $$('.sp').forEach((b) => b.onclick = () => say(q.audio)); }
     let answered = false;
     const finish = (ok, shown) => {
@@ -348,7 +354,7 @@
         delete P.miss[q.u.key];                          // まちがいノートからも けす
       } else {
         P.miss[q.u.key] = (P.miss[q.u.key] || 0) + 1;    // まちがいノートに いれる（つぎの レッスンでも 出る）
-        if (!L.retry.has(q.u.key)) { L.retry.add(q.u.key); L.qs.push(makeQ(q.u)); } // この レッスンの さいごに もういちど
+        if (!L.retry.has(q.u.key)) { L.retry.add(q.u.key); L.qs.push(q.u.kind === 'verb' ? makeVQ(q.u) : makeQ(q.u)); } // この レッスンの さいごに もういちど
       }
       save();
       const fb = $('.fb');
@@ -379,7 +385,7 @@
       $('.skip').onclick = () => { answered = true; L.skip++; L.i++; nextQ(L); }; // マイクが つかえない ときは とばす（まちがいに しない）
       // こえの はんてい：3回まで やりなおせる。きこえなかった（しずか・エラー）は かぞえない
       let tries = 0, rec = null;
-      const key = q.u.kind === 'item' ? q.u.it.b : null;
+      const key = q.u.kind === 'item' ? q.u.it.b : q.u.kind === 'verb' ? q.u.v.en : null;
       const heard = (html) => { const h = $('.heard'); if (h) h.innerHTML = html; };
       $('.mic').onclick = () => {
         if (!REC || answered) return;
@@ -418,6 +424,7 @@
     }
   }
   function endLesson(L) {
+    if (L.verb != null) return endVerbLesson(L);
     const p = prog(), si = L.si, st = STEPS[si];
     const pr = stepProgress(si);
     p.days[today()] = (p.days[today()] || 0) + 1;
@@ -444,6 +451,135 @@
     // クリアしたら つぎの ステップへ。まだなら 同じ ステップを もう1かい
     $('.again').onclick = () => startLesson(msg && si + 1 < STEPS.length ? si + 1 : si);
     $('.tomap').onclick = showMap;
+  }
+
+  // ---------- どうし 300 ----------
+  const VERBS = window.VERBS || [];
+  const VSETS = window.VERB_SETS || [];
+  const vkey = (v) => 'v:' + v.en;
+  function vb() {
+    const p = prog();
+    if (!p.vb) {
+      // がくねんで さいしょに ひらく セット（中1→11、中2→16、中3→21。まえの セットも いつでも れんしゅうできる）
+      const g = p.grade || 0;
+      p.vb = { open: g >= 11 ? 20 : g >= 10 ? 15 : g >= 9 ? 10 : 0, cleared: {} };
+      save();
+    }
+    return p.vb;
+  }
+  const showPast = (si) => si >= 10 || (prog().grade || 0) >= 8; // 小6から・中学の セットでは かこけいも
+  function vsetProgress(si) { const m = prog().m; const got = VSETS[si].filter((v) => (m[vkey(v)] || 0) >= MASTER).length; return { got, total: VSETS[si].length }; }
+  const VBANDS = [{ from: 0, name: 'しょうがくせい', sub: 'まいにちの うごき', color: '#38a169' }, { from: 10, name: '中学1・2年', sub: 'きほんの 動詞と ふきそく動詞', color: '#3182ce' }, { from: 20, name: '中学3年〜', sub: 'せつめい・いけんに つかう 動詞', color: '#d53f8c' }];
+  function showVerbs() {
+    const p = prog(), o = vb();
+    const vl = VERBS.filter((v) => (p.m[vkey(v)] || 0) >= MASTER).length;
+    let html = header() + `<section class="screen verbs">
+      <button class="back">← ロードに もどる</button>
+      <div class="card goal"><div class="goal-ic">🏃</div><div><small>どうし ${VERBS.length}</small><h2>おぼえた ${vl} / ${VERBS.length}</h2>
+        <div class="bar"><i style="width:${Math.round(vl / VERBS.length * 100)}%"></i></div></div></div>`;
+    VBANDS.forEach((b, bi) => {
+      const to = VBANDS[bi + 1] ? VBANDS[bi + 1].from : VSETS.length;
+      html += `<h3 class="band" style="--c:${b.color}">${b.name}<small>${b.sub}</small></h3><div class="steps">`;
+      for (let i = b.from; i < to; i++) {
+        const pr = vsetProgress(i), locked = i > o.open, done = pr.got >= pr.total;
+        html += `<button class="step ${done ? 'done' : ''} ${locked ? 'locked' : ''} ${i === o.open && !done ? 'curr' : ''}" data-vs="${i}" style="--c:${b.color}">
+          <span class="no">${i + 1}</span><span class="ic">${locked ? '🔒' : VSETS[i][0].e}</span>
+          <span class="tt"><b>${esc(VSETS[i].slice(0, 4).map((v) => v.en).join(' · '))} …</b><small>${done ? '✅ クリア' : locked ? 'まだ ひらいていないよ' : `おぼえた ${pr.got} / ${pr.total}`}</small></span></button>`;
+      }
+      html += '</div>';
+    });
+    html += `<p class="note">1かい せいかいした どうしは もう 出ないよ。10こ ぜんぶ おぼえると つぎの セットが ひらくよ。</p></section>`;
+    render(html);
+    bindHeader();
+    $('.back').onclick = showMap;
+    $$('.step[data-vs]').forEach((b) => b.onclick = () => { if (b.classList.contains('locked')) { tone(false); return; } showVerbSet(+b.dataset.vs); });
+    const c = $('.step.curr[data-vs]'); if (c) c.scrollIntoView({ block: 'center' });
+  }
+  function showVerbSet(si) {
+    const m = prog().m, pr = vsetProgress(si), past = showPast(si);
+    render(header() + `<section class="screen stepscr">
+      <button class="back">← どうし いちらんに もどる</button>
+      <div class="stephead card"><span class="big-ic">${VSETS[si][0].e}</span>
+        <div><small>どうし セット ${si + 1} / ${VSETS.length}</small><h2>${esc(VSETS[si].map((v) => v.en).join(', '))}</h2>
+        <div class="bar"><i style="width:${Math.round(pr.got / pr.total * 100)}%"></i></div><small>おぼえた ${pr.got} / ${pr.total}</small></div></div>
+      <button class="btn primary big go-vlesson">▶ レッスン スタート</button>
+      <h3>🔊 きいて まねしよう</h3>
+      <ul class="phrases verbs-list">
+        ${VSETS[si].map((v) => `<li><button class="sp" data-en="${esc(v.en + '. ' + v.ex)}" aria-label="きく">🔊</button><span class="e">${v.e}</span>
+          <span class="t"><b>${esc(v.en)}${past ? `<span class="past"> → ${esc(v.past)}</span>` : ''}</b><small>${esc(v.ja)}</small>
+          <small class="ex">${esc(v.ex)}<br>${esc(v.exja)}</small></span><span class="mk">${(m[vkey(v)] || 0) >= MASTER ? '⭐' : ''}</span></li>`).join('')}
+      </ul>
+    </section>`);
+    bindHeader();
+    $('.back').onclick = showVerbs;
+    $('.go-vlesson').onclick = () => startVerbLesson(si);
+    $$('.sp').forEach((b) => b.onclick = () => say(b.dataset.en));
+  }
+  // れいぶんの 中の その どうしの 形（もとの形・かこけい なら 穴うめに できる）
+  function verbForm(v) {
+    const toks = v.ex.replace(/[.!?,]/g, ' ').split(/\s+/);
+    if (toks.some((t) => t.toLowerCase() === v.en)) return { word: v.en, kind: 'base' };
+    if (v.past !== v.en && toks.some((t) => t.toLowerCase() === v.past)) return { word: v.past, kind: 'past' };
+    return null;
+  }
+  function makeVQ(u) {
+    const v = u.v, others = shuffle(VERBS.filter((x) => x !== v));
+    const kinds = ['vMean', 'vToEn', 'vToEn'];
+    if (verbForm(v)) kinds.push('vBlank', 'vBlank');
+    if (showPast(u.si) && v.past !== v.en) kinds.push('vPast', 'vPast');
+    if (REC) kinds.push('vSpeak');
+    const k = pick(kinds);
+    if (k === 'vMean') return { u, k: 'listen', prompt: 'きこえた どうしは どんな いみ？', audio: v.en, en: v.en, right: v.ja, opts: choicesFrom(v.ja, others.map((x) => x.ja)) };
+    if (k === 'vToEn') return { u, k: 'toEn', prompt: `「${v.ja}」は えいごで？`, pic: v.e, en: v.en, right: v.en, opts: choicesFrom(v.en, others.map((x) => x.en)) };
+    if (k === 'vPast') {
+      // まちがいやすい 形も まぜる（eated, goed など）と ほかの どうしの かこけい
+      const wrong = [v.en + (/e$/.test(v.en) ? 'd' : 'ed'), v.en, ...others.slice(0, 6).map((x) => x.past)].filter((w) => w !== v.past);
+      return { u, k: 'toEn', prompt: `「${v.en}（${v.ja}）」の かこけい（〜した）は？`, pic: v.e, en: `${v.en} → ${v.past}`, right: v.past, opts: choicesFrom(v.past, wrong) };
+    }
+    if (k === 'vBlank') {
+      const f = verbForm(v);
+      const re = new RegExp(`\\b${f.word}\\b`, 'i');
+      const pool2 = others.map((x) => (f.kind === 'past' ? x.past : x.en));
+      return { u, k: 'blank', prompt: `あてはまる どうしは？<small>${esc(v.exja)}</small>`, sentence: v.ex.replace(re, '＿＿＿'), en: v.ex, right: f.word, opts: choicesFrom(f.word, pool2) };
+    }
+    return { u, k: 'speak', prompt: `「${v.ja}」を えいごで いってみよう`, pic: v.e, en: v.en, right: v.en };
+  }
+  function startVerbLesson(si) {
+    const p = prog(); p.miss = p.miss || {}; p.seen = p.seen || {};
+    const now = Date.now(), fresh = (u) => !(p.seen[u.key] > now - RECENT);
+    const us = VSETS[si].map((v) => ({ key: vkey(v), si, kind: 'verb', v }));
+    const todo = shuffle(us.filter((u) => (p.m[u.key] || 0) < MASTER));
+    // ほかの セットで まちがえた どうし（さいだい 3こ）
+    const byKey = new Map(); VSETS.forEach((set, j) => set.forEach((v) => byKey.set(vkey(v), { key: vkey(v), si: j, kind: 'verb', v })));
+    const missU = shuffle(Object.keys(p.miss).filter((k) => k.startsWith('v:')).map((k) => byKey.get(k)).filter((u) => u && u.si !== si && fresh(u)));
+    let list = todo.concat(missU.slice(0, 3));
+    if (!list.length) list = us.filter(fresh).sort((a, b) => (p.seen[a.key] || 0) - (p.seen[b.key] || 0)).slice(0, QN);
+    if (!list.length) list = us.slice();
+    nextQ({ si, verb: si, qs: shuffle(list).map(makeVQ), i: 0, good: 0, skip: 0, retry: new Set() });
+  }
+  function endVerbLesson(L) {
+    const p = prog(), si = L.verb, o = vb(), pr = vsetProgress(si);
+    p.days[today()] = (p.days[today()] || 0) + 1;
+    let msg = '';
+    if (pr.got >= pr.total && !o.cleared[si]) {
+      o.cleared[si] = today();
+      if (o.open <= si && si + 1 < VSETS.length) o.open = si + 1;
+      msg = si + 1 < VSETS.length ? `<div class="clear">🎉 どうし セット${si + 1} クリア！<br><small>セット${si + 2} が ひらいたよ</small></div>` : `<div class="clear">🏆 どうし ${VERBS.length}こ ぜんぶ おぼえた！</div>`;
+    }
+    save();
+    if (KPA) KPA.flush();
+    const total = L.qs.length - L.skip, next = msg && si + 1 < VSETS.length;
+    render(`<section class="screen result">
+      <div class="big-ic">${L.good >= total * 0.8 ? '🌟' : '👍'}</div>
+      <h2>レッスン おわり！</h2>
+      <p class="score">${L.good} / ${total} せいかい</p>
+      ${msg}
+      <p>セット${si + 1} おぼえた ${pr.got} / ${pr.total}</p>
+      <button class="btn primary big again">${next ? '▶ つぎの セットへ' : '▶ もう1かい'}</button>
+      <button class="btn big ghost tomap">どうし いちらんに もどる</button>
+    </section>`);
+    $('.again').onclick = () => startVerbLesson(next ? si + 1 : si);
+    $('.tomap').onclick = showVerbs;
   }
 
   // ---------- 画面：かいわ れんしゅう（ロールプレイ） ----------

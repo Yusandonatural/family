@@ -134,3 +134,12 @@ small { color: var(--sub); }
 .msg.you { justify-content: flex-end; }
 .msg.you > div { background: color-mix(in srgb, var(--pri) 14%, var(--card)); border-color: var(--pri); }
 .msg.pending > div { font-size: 24px; font-weight: 800; color: var(--sub); }
+
+/* どうし */
+.verbcard { display: grid; grid-template-columns: 52px 1fr 24px; gap: 12px; align-items: center; text-align: left; border-color: #f6ad55; }
+.verbcard .vc-ic { font-size: 40px; text-align: center; }
+.verbcard b { display: block; font-size: 19px; }
+.verbcard small { display: block; }
+.verbcard .vc-go { font-size: 22px; color: var(--pri); }
+.verbs-list .past { color: var(--pri); font-size: .85em; margin-left: 4px; }
+.verbs-list .ex { margin-top: 2px; font-size: 12px; line-height: 1.5; }
