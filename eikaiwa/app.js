@@ -311,7 +311,11 @@
     const L = { si, qs, i: 0, good: 0, skip: 0, retry: new Set() };
     nextQ(L);
   }
+  // きいている とちゅうで がめんが かわったら マイクを とめる
+  let curRec = null;
+  function stopRec() { if (curRec) { try { curRec.abort(); } catch (e) { /* なし */ } curRec = null; } }
   function nextQ(L) {
+    stopRec();
     if (L.i >= L.qs.length) return endLesson(L);
     const q = L.qs[L.i];
     let body = '';
@@ -329,7 +333,7 @@
       ${body}
       <div class="fb"></div>
     </section>`);
-    $('.quit').onclick = () => showStep(L.si);
+    $('.quit').onclick = () => { stopRec(); showStep(L.si); };
     if (q.audio) { setTimeout(() => say(q.audio), 250); $$('.sp').forEach((b) => b.onclick = () => say(q.audio)); }
     let answered = false;
     const finish = (ok, shown) => {
@@ -373,29 +377,45 @@
     if (q.k === 'speak') {
       $('.hint').onclick = () => say(q.right, true);
       $('.skip').onclick = () => { answered = true; L.skip++; L.i++; nextQ(L); }; // マイクが つかえない ときは とばす（まちがいに しない）
+      // こえの はんてい：3回まで やりなおせる。きこえなかった（しずか・エラー）は かぞえない
+      let tries = 0, rec = null;
+      const key = q.u.kind === 'item' ? q.u.it.b : null;
+      const heard = (html) => { const h = $('.heard'); if (h) h.innerHTML = html; };
       $('.mic').onclick = () => {
-        if (!REC) return;
-        const r = new REC(); r.lang = 'en-US'; r.interimResults = false; r.maxAlternatives = 3;
-        $('.mic').classList.add('on'); $('.heard').textContent = 'きいているよ…';
+        if (!REC || answered) return;
+        if (rec) { try { rec.stop(); } catch (e) { /* なし */ } return; } // きいている ときに もう一度 おすと おわり
+        if (window.speechSynthesis) speechSynthesis.cancel();          // おてほんの こえを マイクが ひろわないように
+        const r = rec = curRec = new REC();
+        r.lang = 'en-US'; r.interimResults = false; r.continuous = false; r.maxAlternatives = 5;
+        let got = false;
+        $('.mic').classList.add('on'); heard('きいているよ… はなしてね');
         r.onresult = (e) => {
-          const alts = [...e.results[0]].map((a) => a.transcript);
-          $('.heard').textContent = `「${alts[0]}」`;
-          finish(alts.some((a) => similar(a, q.right) >= 0.7), q.en);
+          got = true;
+          const alts = [];
+          for (const res of e.results) for (const a of res) alts.push(a.transcript);
+          const all = [...e.results].map((res) => res[0].transcript).join(' ');
+          if (all && !alts.includes(all)) alts.push(all);
+          const best = alts.find((a) => window.EikMatch.ok(a, q.right, key));
+          if (best) { heard(`「${esc(best)}」`); finish(true, q.en); return; }
+          tries++;
+          const c = window.EikMatch.check(alts[0] || '', q.right);
+          if (tries >= 3) { heard(`「${esc(alts[0] || '')}」`); finish(false, q.en); return; }
+          heard(`「${esc(alts[0] || '')}」ときこえたよ。${c.missed.length ? `<b>${esc(c.missed.slice(0, 3).join(', '))}</b> を はっきり いってみよう。` : ''}<br>もういちど おしてね（あと ${3 - tries}回）`);
         };
-        r.onerror = () => { $('.heard').textContent = 'うまく きこえなかったよ。もういちど おしてね'; };
-        r.onend = () => $('.mic') && $('.mic').classList.remove('on');
-        try { r.start(); } catch (e) { /* なし */ }
+        r.onerror = (e) => {
+          const er = e && e.error;
+          if (er === 'not-allowed' || er === 'service-not-allowed') heard('マイクが つかえないよ。せっていで マイクを ゆるすか、「いまは はなせない」を おしてね');
+          else if (er === 'no-speech') heard('こえが きこえなかったよ。マイクに ちかづいて もういちど おしてね');
+          else if (er !== 'aborted') heard('うまく きこえなかったよ。もういちど おしてね');
+        };
+        r.onend = () => {
+          rec = null;
+          const m = $('.mic'); if (m) m.classList.remove('on');
+          if (!got && !answered && $('.heard') && /きいているよ/.test($('.heard').textContent)) heard('こえが きこえなかったよ。もういちど おしてね');
+        };
+        try { r.start(); } catch (e) { rec = null; $('.mic').classList.remove('on'); heard('マイクを はじめられなかったよ。もういちど おしてね'); }
       };
     }
-  }
-  // いった ことばと こたえの にている わりあい（たんごの 一致）
-  function similar(a, b) {
-    const n = (s) => s.toLowerCase().replace(/[^a-z0-9' ]/g, ' ').split(/\s+/).filter(Boolean);
-    const A = n(a), B = n(b);
-    if (!B.length) return 0;
-    let hit = 0; const pool2 = A.slice();
-    B.forEach((w) => { const j = pool2.indexOf(w); if (j >= 0) { hit++; pool2.splice(j, 1); } });
-    return hit / B.length;
   }
   function endLesson(L) {
     const p = prog(), si = L.si, st = STEPS[si];
